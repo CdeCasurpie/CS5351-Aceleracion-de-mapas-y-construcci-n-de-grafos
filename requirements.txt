@@ -1,4 +1,13 @@
-pybind11
-numpy
-pandas
-pytest
+# Core dependencies
+pybind11>=2.9.0
+numpy>=1.21.0
+pandas>=1.3.0
+
+# Testing
+pytest>=7.0.0
+
+# Optional dependencies for future features
+# osmnx>=1.2.0  # PENDING: For load_map() functionality
+# folium>=0.12.0  # PENDING: For interactive map rendering
+# matplotlib>=3.5.0  # PENDING: For static plots
+# scipy>=1.7.0  # PENDING: For graph simplification (KDTree)

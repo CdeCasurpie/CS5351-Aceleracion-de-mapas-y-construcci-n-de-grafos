@@ -87,14 +87,14 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/build/CMakeFiles /workspace/build//CMakeFiles/progress.marks
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
+	cd /workspace/build && $(CMAKE_COMMAND) -E cmake_progress_start /workspace/build/CMakeFiles /workspace/build/acj/core//CMakeFiles/progress.marks
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 acj/core/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 clean
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 acj/core/clean
 .PHONY : clean
 
 # The main clean target
@@ -103,31 +103,56 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 preinstall
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 acj/core/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 preinstall
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 acj/core/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /workspace/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
-#=============================================================================
-# Target rules for targets named acj_core
+# Convenience name for target.
+acj/core/CMakeFiles/acj_core.dir/rule:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 acj/core/CMakeFiles/acj_core.dir/rule
+.PHONY : acj/core/CMakeFiles/acj_core.dir/rule
 
-# Build rule for target.
-acj_core: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 acj_core
+# Convenience name for target.
+acj_core: acj/core/CMakeFiles/acj_core.dir/rule
 .PHONY : acj_core
 
 # fast build rule for target.
 acj_core/fast:
-	$(MAKE) $(MAKESILENT) -f acj/core/CMakeFiles/acj_core.dir/build.make acj/core/CMakeFiles/acj_core.dir/build
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f acj/core/CMakeFiles/acj_core.dir/build.make acj/core/CMakeFiles/acj_core.dir/build
 .PHONY : acj_core/fast
+
+src/acj_core.o: src/acj_core.cpp.o
+.PHONY : src/acj_core.o
+
+# target to build an object file
+src/acj_core.cpp.o:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f acj/core/CMakeFiles/acj_core.dir/build.make acj/core/CMakeFiles/acj_core.dir/src/acj_core.cpp.o
+.PHONY : src/acj_core.cpp.o
+
+src/acj_core.i: src/acj_core.cpp.i
+.PHONY : src/acj_core.i
+
+# target to preprocess a source file
+src/acj_core.cpp.i:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f acj/core/CMakeFiles/acj_core.dir/build.make acj/core/CMakeFiles/acj_core.dir/src/acj_core.cpp.i
+.PHONY : src/acj_core.cpp.i
+
+src/acj_core.s: src/acj_core.cpp.s
+.PHONY : src/acj_core.s
+
+# target to generate assembly for a file
+src/acj_core.cpp.s:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f acj/core/CMakeFiles/acj_core.dir/build.make acj/core/CMakeFiles/acj_core.dir/src/acj_core.cpp.s
+.PHONY : src/acj_core.cpp.s
 
 # Help Target
 help:
@@ -138,6 +163,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... acj_core"
+	@echo "... src/acj_core.o"
+	@echo "... src/acj_core.i"
+	@echo "... src/acj_core.s"
 .PHONY : help
 
 
@@ -149,6 +177,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /workspace/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

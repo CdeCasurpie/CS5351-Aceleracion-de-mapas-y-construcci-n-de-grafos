@@ -63,42 +63,57 @@ CMAKE_BINARY_DIR = /workspace/build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
-all: CMakeFiles/matcher.dir/all
+all: acj/core/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
-preinstall:
+preinstall: acj/core/preinstall
 .PHONY : preinstall
 
 # The main recursive "clean" target.
-clean: CMakeFiles/matcher.dir/clean
+clean: acj/core/clean
 .PHONY : clean
 
 #=============================================================================
-# Target rules for target CMakeFiles/matcher.dir
+# Directory level rules for directory acj/core
+
+# Recursive "all" directory target.
+acj/core/all: acj/core/CMakeFiles/acj_core.dir/all
+.PHONY : acj/core/all
+
+# Recursive "preinstall" directory target.
+acj/core/preinstall:
+.PHONY : acj/core/preinstall
+
+# Recursive "clean" directory target.
+acj/core/clean: acj/core/CMakeFiles/acj_core.dir/clean
+.PHONY : acj/core/clean
+
+#=============================================================================
+# Target rules for target acj/core/CMakeFiles/acj_core.dir
 
 # All Build rule for target.
-CMakeFiles/matcher.dir/all:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/matcher.dir/build.make CMakeFiles/matcher.dir/depend
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/matcher.dir/build.make CMakeFiles/matcher.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/workspace/build/CMakeFiles --progress-num=1,2 "Built target matcher"
-.PHONY : CMakeFiles/matcher.dir/all
+acj/core/CMakeFiles/acj_core.dir/all:
+	$(MAKE) $(MAKESILENT) -f acj/core/CMakeFiles/acj_core.dir/build.make acj/core/CMakeFiles/acj_core.dir/depend
+	$(MAKE) $(MAKESILENT) -f acj/core/CMakeFiles/acj_core.dir/build.make acj/core/CMakeFiles/acj_core.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/workspace/build/CMakeFiles --progress-num=1,2 "Built target acj_core"
+.PHONY : acj/core/CMakeFiles/acj_core.dir/all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/matcher.dir/rule: cmake_check_build_system
+acj/core/CMakeFiles/acj_core.dir/rule: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/build/CMakeFiles 2
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/matcher.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 acj/core/CMakeFiles/acj_core.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/build/CMakeFiles 0
-.PHONY : CMakeFiles/matcher.dir/rule
+.PHONY : acj/core/CMakeFiles/acj_core.dir/rule
 
 # Convenience name for target.
-matcher: CMakeFiles/matcher.dir/rule
-.PHONY : matcher
+acj_core: acj/core/CMakeFiles/acj_core.dir/rule
+.PHONY : acj_core
 
 # clean rule for target.
-CMakeFiles/matcher.dir/clean:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/matcher.dir/build.make CMakeFiles/matcher.dir/clean
-.PHONY : CMakeFiles/matcher.dir/clean
+acj/core/CMakeFiles/acj_core.dir/clean:
+	$(MAKE) $(MAKESILENT) -f acj/core/CMakeFiles/acj_core.dir/build.make acj/core/CMakeFiles/acj_core.dir/clean
+.PHONY : acj/core/CMakeFiles/acj_core.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.
