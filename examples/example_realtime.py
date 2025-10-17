@@ -10,6 +10,9 @@ This example demonstrates GPU-accelerated real-time visualization:
 
 import sys
 import os
+import random
+
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import acj
@@ -118,7 +121,7 @@ def main():
     
     # Configuration
     city_name = "Cholula, Puebla, Mexico"
-    n_crimes = 1000000
+    n_crimes = 10000000
     
     # Step 1: Load city map from OpenStreetMap
     print(f"[1/4] Loading street network for '{city_name}'...")
@@ -143,7 +146,7 @@ def main():
     
     # Step 2: Generate random crime points
     print(f"[2/4] Generating {n_crimes} random crime points...")
-    crimes = generate_random_points(graph, n_points=n_crimes)
+    crimes = generate_random_points(graph, n_points=n_crimes, seed=random.randint(0, 10000))
     
     print(f"Generated {len(crimes)} crime points")
     print(f"Crime types: {crimes['crime_type'].value_counts().to_dict()}")

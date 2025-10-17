@@ -1,15 +1,13 @@
 """
 Real-time GPU-accelerated visualization using VisPy.
 
-This module provides interactive visualization of graph data and analysis results
-using VisPy with OpenGL acceleration. Unlike matplotlib, this renders in real-time
-with smooth zoom, pan, and rotation capabilities.
+This module provides a professional, interactive visualization tool for graph data
+and analysis results using pure VisPy with OpenGL acceleration.
 """
 
 from .io import GraphData
 from .map_index import MapIndex
 import pandas as pd
-import numpy as np
 from typing import Optional
 
 try:
@@ -25,280 +23,161 @@ except ImportError:
 
 class ACJVisualizer:
     """
-    Real-time interactive visualizer for street networks and crime heatmaps.
+    Real-time interactive analysis tool for street networks and heatmaps.
     
-    This class creates a GPU-accelerated window using VisPy that allows
-    real-time interaction (zoom, pan) with large datasets. All data is
-    uploaded to the GPU once during initialization for maximum performance.
-    
-    Controls:
-        - Mouse drag: Pan the view
-        - Mouse wheel: Zoom in/out
-        - Right mouse drag: Rotate (3D mode only)
-        - 'N': Toggle nodes visibility
-        - 'R': Reset camera view
-        - 'Q' or ESC: Close window
-    
-    Example:
-        >>> graph = acj.load_map("Cholula, Puebla, Mexico")
-        >>> map_index = acj.MapIndex(graph)
-        >>> assignments = map_index.assign_to_endpoints(crimes)
-        >>> visualizer = acj.ACJVisualizer(map_index, assignments)
-        >>> visualizer.run()
+    This class creates a GPU-accelerated window with an on-screen display (OSD)
+    for real-time feedback and keyboard controls for layer management.
     """
     
     def __init__(self, map_index: MapIndex, assignments: Optional[pd.DataFrame] = None,
-                 title: str = "ACJ Real-Time Visualizer", canvas_size=(1200, 900),
-                 show_nodes: bool = False, show_segments: bool = True):
-        """
-        Initialize the real-time visualizer.
+                 title: str = "ACJ Real-Time Analysis Tool", canvas_size=(1400, 1000)):
         
-        Args:
-            map_index: MapIndex object containing the graph data
-            assignments: Optional DataFrame with crime assignments for heatmap coloring
-            title: Window title
-            canvas_size: Window size (width, height) in pixels
-            show_nodes: Whether to render nodes initially (default: False, toggle with 'N')
-            show_segments: Whether to render segments
-        
-        Notes:
-            This constructor uploads all data to GPU. Rendering happens in run().
-        """
+        # --- 1. Preparación de Datos ---
+        print("Preparing render data for GPU upload...")
         self.map_index = map_index
         self.assignments = assignments
-        self.title = title
-        self.nodes_visible = show_nodes
-        
-        # Pre-compute all render data (CPU-side calculation, done once)
-        print("Preparing render data for GPU upload...")
         self.render_data = map_index.get_render_data(assignments)
         
-        # Create the canvas (window)
+        # --- 2. Configuración del Canvas y la Vista ---
         self.canvas = scene.SceneCanvas(
-            keys='interactive',
-            title=title,
-            size=canvas_size,
-            show=True,
-            bgcolor='white'
+            keys='interactive', title=title, size=canvas_size, show=True, bgcolor='#1e1e1e'
         )
-        
-        # Create the view (camera viewport)
         self.view = self.canvas.central_widget.add_view()
         
-        # Upload segments to GPU with subtle outline for visibility
-        if show_segments:
-            print(f"Uploading {len(self.render_data['segment_connectivity'])} segments to GPU...")
-            
-            # First, draw black outlines (just slightly wider)
-            self.segments_outline = visuals.Line(
-                pos=self.render_data['segment_vertices'],
-                color='gray',
-                connect=self.render_data['segment_connectivity'],
-                width=0.5,  # Just slightly wider than colored lines
-                method='gl',
-                parent=self.view.scene
-            )
-            
-            # Then, draw colored segments with gradient on top
-            self.segments_visual = visuals.Line(
-                pos=self.render_data['segment_vertices'],
-                color=self.render_data['segment_colors'],
-                connect=self.render_data['segment_connectivity'],
-                width=6.0,  # Main line width - the gradient is here
-                method='gl',
-                parent=self.view.scene
-            )
+        # --- 3. Creación de los Elementos Visuales (en la GPU) ---
+        self._create_visuals()
         
-        # Upload nodes to GPU with heatmap colors (no blue border)
-        print(f"Uploading {len(self.render_data['node_vertices'])} nodes to GPU...")
-        self.nodes_visual = visuals.Markers(
-            pos=self.render_data['node_vertices'],
-            face_color=self.render_data['node_colors'],
-            size=17,
-            edge_width=0,  # No border
+        # --- 4. Configuración de la Interfaz y Controles ---
+        self.view.camera = 'panzoom'
+        self.view.camera.aspect = 1.0 # Mantiene la proporción correcta
+        
+        # --- FIX: CÁLCULO MANUAL DEL ZOOM Y CENTRADO INICIAL ---
+        # Calculamos los límites del mapa y establecemos la vista de la cámara
+        # para que todo el mapa sea visible al inicio.
+        self._set_initial_camera_view()
+        
+        self.visibility_state = {'nodes': True, 'segments': True, 'grid': True}
+        self.mouse_coords = (0, 0)
+        self._update_debugger_text()
+        
+        self.canvas.events.key_press.connect(self._on_key_press)
+        self.canvas.events.mouse_move.connect(self._on_mouse_move)
+        self.view.camera.events.transform_change.connect(self._on_camera_change)
+        
+        print("GPU upload complete. Tool is ready for real-time interaction.")
+
+    def _set_initial_camera_view(self):
+        """Calcula el bounding box del mapa y centra la cámara."""
+        node_vertices = self.render_data['node_vertices']
+        if len(node_vertices) == 0:
+            return
+
+        x_min, y_min = node_vertices.min(axis=0)
+        x_max, y_max = node_vertices.max(axis=0)
+
+        # Añadir un 5% de padding para que no toque los bordes
+        padding_x = (x_max - x_min) * 0.05
+        padding_y = (y_max - y_min) * 0.05
+        
+        self.view.camera.set_range(
+            x=(x_min - padding_x, x_max + padding_x),
+            y=(y_min - padding_y, y_max + padding_y),
+            margin=0
+        )
+
+    def _create_visuals(self):
+        """Crea y configura todos los objetos visuales de VisPy."""
+        self.grid = visuals.GridLines(parent=self.view.scene, color=(0.5, 0.5, 0.5, 0.3))
+        self.axis = visuals.XYZAxis(parent=self.view.scene)
+
+        self.segments_visual = visuals.Line(
+            pos=self.render_data['segment_vertices'], 
+            color=self.render_data['segment_colors'],
+            connect=self.render_data['segment_connectivity'], 
+            width=3.0,
+            method='gl', 
             parent=self.view.scene
         )
         
-        # Set initial visibility
-        self.nodes_visual.visible = self.nodes_visible
+        self.nodes_visual = visuals.Markers(
+            pos=self.render_data['node_vertices'], face_color=self.render_data['node_colors'],
+            size=12, edge_width=0.5, edge_color='black', parent=self.view.scene
+        )
         
-        # Configure camera for 2D pan/zoom
-        self.view.camera = 'panzoom'
-        self.view.camera.set_range()
+        self.debugger_text = visuals.Text(
+            "", pos=(15, 15), anchor_x='left', anchor_y='bottom',
+            color='white', font_size=10, parent=self.canvas.scene
+        )
+
+    def _update_debugger_text(self):
+        """Actualiza el panel de información en pantalla."""
+        # ... (esta función no necesita cambios)
+        vis_nodes = "ON" if self.visibility_state['nodes'] else "OFF"
+        vis_segments = "ON" if self.visibility_state['segments'] else "OFF"
+        vis_grid = "ON" if self.visibility_state['grid'] else "OFF"
         
-        # Add statistics text overlay if assignments provided
-        if assignments is not None:
-            self._add_statistics_overlay()
+        zoom_level = self.view.camera.rect.width
         
-        # Connect keyboard events
-        self.canvas.events.key_press.connect(self._on_key_press)
-        
-        print("GPU upload complete. Ready for real-time rendering.")
-    
-    def _add_statistics_overlay(self):
-        """Add text overlay with statistics."""
-        total_crimes = len(self.assignments)
-        crime_counts = self.assignments['assigned_node_id'].value_counts()
-        nodes_with_crimes = len(crime_counts)
-        total_nodes = len(self.map_index.graph_data.nodes)
-        max_crimes = crime_counts.max() if len(crime_counts) > 0 else 0
-        
-        nodes_status = "Hidden" if not self.nodes_visible else "Visible"
-        
-        stats_text = (
-            f"Total Crimes: {total_crimes}\n"
-            f"Affected Nodes: {nodes_with_crimes}/{total_nodes}\n"
-            f"Max Crimes/Node: {max_crimes}\n"
-            f"Nodes: {nodes_status}\n"
+        text = (
+            f"--- ACJ ANALYSIS TOOL ---\n"
+            f"Mouse Coords: ({self.mouse_coords[0]:.2f}, {self.mouse_coords[1]:.2f})\n"
+            f"Zoom Level (Area Width): {zoom_level:.2f}\n"
             f"\n"
-            f"Controls:\n"
-            f"  Mouse: Pan\n"
-            f"  Wheel: Zoom\n"
-            f"  N: Toggle Nodes\n"
-            f"  R: Reset view\n"
-            f"  Q: Quit"
+            f"--- LAYERS ---\n"
+            f" (N) Nodes:    {vis_nodes}\n"
+            f" (L) Segments: {vis_segments}\n"
+            f" (G) Grid:     {vis_grid}\n"
+            f"\n"
+            f"--- CONTROLS ---\n"
+            f" (R) Reset View | (Q) Quit"
         )
-        
-        self.text_visual = visuals.Text(
-            stats_text,
-            pos=(20, 30),
-            anchor_x='left',
-            anchor_y='top',
-            color='black',
-            font_size=10,
-            parent=self.view
-        )
-    
-    def _update_statistics_text(self):
-        """Update the statistics text overlay."""
-        if hasattr(self, 'text_visual') and self.assignments is not None:
-            total_crimes = len(self.assignments)
-            crime_counts = self.assignments['assigned_node_id'].value_counts()
-            nodes_with_crimes = len(crime_counts)
-            total_nodes = len(self.map_index.graph_data.nodes)
-            max_crimes = crime_counts.max() if len(crime_counts) > 0 else 0
-            
-            nodes_status = "Hidden" if not self.nodes_visible else "Visible"
-            
-            stats_text = (
-                f"Total Crimes: {total_crimes}\n"
-                f"Affected Nodes: {nodes_with_crimes}/{total_nodes}\n"
-                f"Max Crimes/Node: {max_crimes}\n"
-                f"Nodes: {nodes_status}\n"
-                f"\n"
-                f"Controls:\n"
-                f"  Mouse: Pan\n"
-                f"  Wheel: Zoom\n"
-                f"  N: Toggle Nodes\n"
-                f"  R: Reset view\n"
-                f"  Q: Quit"
-            )
-            
-            self.text_visual.text = stats_text
-    
+        self.debugger_text.text = text
+
     def _on_key_press(self, event):
-        """Handle keyboard events."""
+        """Maneja las pulsaciones de teclas para los controles."""
+        # ... (esta función no necesita cambios)
         if event.key == 'n' or event.key == 'N':
-            # Toggle nodes visibility
-            self.nodes_visible = not self.nodes_visible
-            self.nodes_visual.visible = self.nodes_visible
-            status = "visible" if self.nodes_visible else "hidden"
-            print(f"Nodes: {status}")
-            self._update_statistics_text()
-            
+            self.visibility_state['nodes'] = not self.visibility_state['nodes']
+            self.nodes_visual.visible = self.visibility_state['nodes']
+        elif event.key == 'l' or event.key == 'L':
+            self.visibility_state['segments'] = not self.visibility_state['segments']
+        elif event.key == 'g' or event.key == 'G':
+            self.visibility_state['grid'] = not self.visibility_state['grid']
+            self.grid.visible = self.visibility_state['grid']
         elif event.key == 'r' or event.key == 'R':
-            # Reset camera view
-            self.view.camera.set_range()
-            print("Camera view reset")
-            
+            self._set_initial_camera_view() # Usamos nuestra función de reseteo
         elif event.key == 'q' or event.key == 'Q' or event.key == 'Escape':
-            # Close window
             self.canvas.close()
-    
+            
+        self._update_debugger_text()
+
+    def _on_mouse_move(self, event):
+        """Actualiza las coordenadas del mouse en el debugger."""
+        # ... (esta función no necesita cambios)
+        transform = self.view.camera.transform
+        self.mouse_coords = transform.imap(event.pos)
+
+    def _on_camera_change(self, event):
+        """Actualiza el nivel de zoom cuando la cámara cambia."""
+        # ... (esta función no necesita cambios)
+        self._update_debugger_text()
+        
     def run(self):
-        """
-        Start the interactive visualization loop.
-        
-        This blocks until the window is closed. All rendering is handled
-        by VisPy/OpenGL automatically with GPU acceleration.
-        """
-        print(f"\nStarting real-time visualization...")
-        print(f"Window: {self.title}")
-        print("Use mouse to pan/zoom.")
-        print("Press 'N' to toggle nodes, 'Q' to quit.\n")
-        
-        # Start the VisPy application event loop
+        """Inicia el bucle de la aplicación interactiva."""
+        print("\nStarting real-time interactive tool...")
         vispy.app.run()
+        print("Visualizer closed.")
 
-
+# --- Funciones de Conveniencia para el Usuario Final ---
 def render_realtime(map_index: MapIndex, assignments: Optional[pd.DataFrame] = None,
-                   title: str = "Street Network Visualization") -> ACJVisualizer:
-    """
-    Launch real-time interactive visualization.
-    
-    This is the main convenience function for users. It creates an ACJVisualizer
-    and immediately starts the rendering loop.
-    
-    Args:
-        map_index: MapIndex object with the graph data
-        assignments: Optional crime assignments for heatmap coloring
-        title: Window title
-    
-    Returns:
-        ACJVisualizer instance (mostly for advanced users)
-    
-    Example:
-        >>> graph = acj.load_map("Cholula, Puebla, Mexico")
-        >>> map_index = acj.MapIndex(graph)
-        >>> assignments = map_index.assign_to_endpoints(crimes)
-        >>> acj.render_realtime(map_index, assignments)
-    
-    Notes:
-        This function blocks until the window is closed.
-    """
+                   title: str = "Street Network Visualization"):
     visualizer = ACJVisualizer(map_index, assignments, title=title)
     visualizer.run()
     return visualizer
 
-
 def render_heatmap(map_index: MapIndex, assignments: pd.DataFrame,
-                  title: str = "Crime Density Heatmap") -> ACJVisualizer:
-    """
-    Launch real-time interactive heatmap visualization.
-    
-    This is a convenience wrapper around render_realtime() with a specific title
-    for heatmap visualizations.
-    
-    Args:
-        map_index: MapIndex object with the graph data
-        assignments: Crime assignments DataFrame (required for heatmap)
-        title: Window title
-    
-    Returns:
-        ACJVisualizer instance
-    
-    Example:
-        >>> acj.render_heatmap(map_index, assignments)
-    """
+                  title: str = "Crime Density Heatmap"):
     return render_realtime(map_index, assignments, title=title)
 
-
-def render_graph(map_index: MapIndex, title: str = "Street Network Graph") -> ACJVisualizer:
-    """
-    Launch real-time visualization of basic street network.
-    
-    This shows the graph without any crime heatmap coloring.
-    
-    Args:
-        map_index: MapIndex object with the graph data
-        title: Window title
-    
-    Returns:
-        ACJVisualizer instance
-    
-    Example:
-        >>> graph = acj.load_map("Cholula, Puebla, Mexico")
-        >>> map_index = acj.MapIndex(graph)
-        >>> acj.render_graph(map_index)
-    """
+def render_graph(map_index: MapIndex, title: str = "Street Network Graph"):
     return render_realtime(map_index, assignments=None, title=title)
