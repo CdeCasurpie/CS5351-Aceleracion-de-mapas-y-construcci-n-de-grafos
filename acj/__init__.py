@@ -9,8 +9,7 @@ Main Components:
     - load_graph: Load graph data from pandas DataFrames
     - simplify_graph: Graph simplification utilities
     
-Author: Based on work by Alejandro
-License: MIT
+Author: Cèsar, Alejandro, Jeremy.
 """
 
 from .map_index import MapIndex
