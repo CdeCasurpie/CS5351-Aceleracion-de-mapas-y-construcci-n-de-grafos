@@ -1,0 +1,41 @@
+# Build artifacts
+build/
+*.so
+*.o
+*.a
+*.dylib
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Keep only the main CMakeLists.txt files
+!CMakeLists.txt
+!acj/core/CMakeLists.txt

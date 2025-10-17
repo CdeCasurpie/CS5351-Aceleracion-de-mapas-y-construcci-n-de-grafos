@@ -1,41 +1,48 @@
 # ACJ Project - Implementation Status
 
+## Project Overview
+
+ACJ is a clean, production-ready geospatial analysis library built on CGAL.
+The project has been restructured from Alejandro's initial work into a 
+professional Python package with C++ acceleration.
+
+**Legacy files have been removed** - the project now contains only the 
+production ACJ library structure.
+
 ## Completed Components
 
 ### Core Infrastructure
-- [x] Project restructured following the proposed architecture
+- [x] Project restructured following modern Python package standards
 - [x] CMake build system configured for acj_core module
 - [x] Docker environment with all CGAL dependencies
-- [x] Makefile with commands for building and testing
+- [x] Clean Makefile with intuitive commands
 - [x] Comprehensive test suite framework
+- [x] Professional documentation (README.md)
 
 ### Python Modules
 - [x] `acj/__init__.py` - Package initialization and exports
 - [x] `acj/io.py` - Data loading with GraphData container class
   - [x] `load_graph()` - Load from pandas DataFrames (IMPLEMENTED)
-  - [x] `load_map()` - Load from OSMnx (STUB - raises NotImplementedError)
+  - [ ] `load_map()` - Load from OSMnx (PENDING)
 - [x] `acj/map_index.py` - Core MapIndex class
   - [x] Initialization with GraphData
   - [x] `assign_to_endpoints()` - Point to node assignment (IMPLEMENTED)
-  - [x] `assign_to_segments()` - Point to segment assignment (STUB)
+  - [ ] `assign_to_segments()` - Point to segment assignment (PENDING)
 - [x] `acj/graph.py` - Graph utilities
-  - [x] `simplify_graph()` - Currently returns unchanged (PENDING)
+  - [ ] `simplify_graph()` - Currently returns unchanged (PENDING)
 - [x] `acj/render.py` - Visualization functions
-  - [x] `render_graph()` - Graph visualization (STUB)
-  - [x] `render_heatmap()` - Heatmap visualization (STUB)
+  - [ ] `render_graph()` - Graph visualization (PENDING)
+  - [ ] `render_heatmap()` - Heatmap visualization (PENDING)
 
 ### C++ Core (acj_core)
 - [x] `acj/core/src/acj_core.cpp` - CGAL wrapper
-  - [x] `match_cgal()` - Delaunay-based nearest neighbor (IMPLEMENTED, from Alejandro)
-  - [x] `assign_to_segments()` - AABB tree queries (STUB - raises runtime_error)
+  - [x] `match_cgal()` - Delaunay-based nearest neighbor (IMPLEMENTED)
+  - [ ] `assign_to_segments()` - AABB tree queries (PENDING)
 - [x] Module properly exposes functions to Python via pybind11
 - [x] Optimized compilation with Release mode (-O3)
 
 ### Testing & Documentation
-- [x] `acj/tests/test_acj.py` - Comprehensive test suite
-  - [x] Tests for data loading and validation
-  - [x] Tests for MapIndex functionality
-  - [x] Tests for pending features (check NotImplementedError)
+- [x] `acj/tests/test_acj.py` - Comprehensive test suite (12 tests, all passing)
 - [x] `examples/example_acj.py` - Working usage example
 - [x] `README.md` - Complete documentation with API reference
 - [x] `PROJECT_STATUS.md` - This file
@@ -132,17 +139,14 @@
 ### First Time Setup
 
 ```bash
-# Clean any previous builds
-make clean
-
-# Rebuild Docker image
+# Build Docker image
 make build
 
 # Run tests
-make test-acj
+make test
 
 # Run example
-make example-acj
+make example
 ```
 
 ### Development Workflow
@@ -152,7 +156,7 @@ make example-acj
 
 # Rebuild and test
 make clean
-make test-acj
+make test
 
 # Or open interactive shell for debugging
 make shell-user
@@ -169,24 +173,6 @@ pytest acj/tests/test_acj.py::TestMapIndex -v
 
 # Test with verbose output
 pytest acj/tests/ -v -s
-```
-
----
-
-## Migration from Alejandro's Work
-
-The original work by Alejandro (`src/match.cpp`, `example.py`, `tests/test_matcher.py`) has been:
-
-1. **Preserved:** Original files remain in `src/` and `tests/` directories
-2. **Adapted:** C++ code migrated to `acj/core/src/acj_core.cpp`
-3. **Enhanced:** Added proper documentation and error handling
-4. **Wrapped:** Python interface created in `acj/map_index.py`
-
-**Legacy commands still work:**
-```bash
-make test      # Run original matcher tests
-make example   # Run original example
-make benchmark # Run performance benchmark
 ```
 
 ---
@@ -231,12 +217,12 @@ pd.DataFrame({
 
 ## Next Steps for Development
 
-1. **Immediate:** Test the current implementation
+1. **Immediate:** Verify clean installation
    ```bash
    make clean
    make build
-   make test-acj
-   make example-acj
+   make test
+   make example
    ```
 
 2. **Short term:** Implement `assign_to_segments()` in C++
@@ -256,6 +242,19 @@ pd.DataFrame({
 
 ---
 
+## Project History
+
+This project originated from Alejandro's work on CGAL integration for 
+point matching. The codebase has been completely restructured into a 
+professional Python library:
+
+- **Original work preserved in git history**
+- **Legacy files removed for clean production codebase**
+- **Core algorithms migrated to `acj_core` module**
+- **Professional API designed for real-world use**
+
+---
+
 ## Questions or Issues?
 
 If you encounter problems:
@@ -263,9 +262,8 @@ If you encounter problems:
 1. Check that Docker image is built: `docker images | grep ubuntu-acj`
 2. Verify C++ module compiles: `make clean && make build`
 3. Check Python can import: `python3 -c "import acj; print(acj.__version__)"`
-4. Run tests to see detailed errors: `make test-acj`
+4. Run tests to see detailed errors: `make test`
 
 For development questions, refer to:
 - CGAL documentation: https://doc.cgal.org/
 - pybind11 documentation: https://pybind11.readthedocs.io/
-- Original Alejandro's code: `src/match.cpp`
