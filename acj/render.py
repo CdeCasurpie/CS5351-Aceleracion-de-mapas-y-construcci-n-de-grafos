@@ -36,7 +36,12 @@ class ACJVisualizer:
         print("Preparing render data for GPU upload...")
         self.map_index = map_index
         self.assignments = assignments
-        self.render_data = map_index.get_render_data(assignments)
+        # NOTE: Using outlier_percentile from the last update for robust coloring
+        self.render_data = map_index.get_render_data(
+            assignments, 
+            neighbor_influence=0.5, 
+            outlier_percentile=98.0
+        )
         
         # --- 2. Configuración del Canvas y la Vista ---
         self.canvas = scene.SceneCanvas(
@@ -49,11 +54,8 @@ class ACJVisualizer:
         
         # --- 4. Configuración de la Interfaz y Controles ---
         self.view.camera = 'panzoom'
-        self.view.camera.aspect = 1.0 # Mantiene la proporción correcta
+        self.view.camera.aspect = 1.0
         
-        # --- FIX: CÁLCULO MANUAL DEL ZOOM Y CENTRADO INICIAL ---
-        # Calculamos los límites del mapa y establecemos la vista de la cámara
-        # para que todo el mapa sea visible al inicio.
         self._set_initial_camera_view()
         
         self.visibility_state = {'nodes': True, 'segments': True, 'grid': True}
@@ -75,7 +77,6 @@ class ACJVisualizer:
         x_min, y_min = node_vertices.min(axis=0)
         x_max, y_max = node_vertices.max(axis=0)
 
-        # Añadir un 5% de padding para que no toque los bordes
         padding_x = (x_max - x_min) * 0.05
         padding_y = (y_max - y_min) * 0.05
         
@@ -94,7 +95,7 @@ class ACJVisualizer:
             pos=self.render_data['segment_vertices'], 
             color=self.render_data['segment_colors'],
             connect=self.render_data['segment_connectivity'], 
-            width=3.0,
+            width=5.0,
             method='gl', 
             parent=self.view.scene
         )
@@ -111,7 +112,10 @@ class ACJVisualizer:
 
     def _update_debugger_text(self):
         """Actualiza el panel de información en pantalla."""
-        # ... (esta función no necesita cambios)
+        # --- CAMBIO PRINCIPAL: OBTENER LOS CONTEOS Y AÑADIRLOS AL TEXTO ---
+        n_nodes = len(self.map_index.graph_data.nodes)
+        n_segments = len(self.map_index.graph_data.segments)
+        
         vis_nodes = "ON" if self.visibility_state['nodes'] else "OFF"
         vis_segments = "ON" if self.visibility_state['segments'] else "OFF"
         vis_grid = "ON" if self.visibility_state['grid'] else "OFF"
@@ -120,6 +124,7 @@ class ACJVisualizer:
         
         text = (
             f"--- ACJ ANALYSIS TOOL ---\n"
+            f"Nodes: {n_nodes} | Segments: {n_segments}\n"  # <-- LÍNEA AÑADIDA
             f"Mouse Coords: ({self.mouse_coords[0]:.2f}, {self.mouse_coords[1]:.2f})\n"
             f"Zoom Level (Area Width): {zoom_level:.2f}\n"
             f"\n"
@@ -135,17 +140,18 @@ class ACJVisualizer:
 
     def _on_key_press(self, event):
         """Maneja las pulsaciones de teclas para los controles."""
-        # ... (esta función no necesita cambios)
         if event.key == 'n' or event.key == 'N':
             self.visibility_state['nodes'] = not self.visibility_state['nodes']
             self.nodes_visual.visible = self.visibility_state['nodes']
         elif event.key == 'l' or event.key == 'L':
             self.visibility_state['segments'] = not self.visibility_state['segments']
+            # --- BUG FIX: AÑADIR ESTA LÍNEA PARA QUE EL CAMBIO SEA VISIBLE ---
+            self.segments_visual.visible = self.visibility_state['segments']
         elif event.key == 'g' or event.key == 'G':
             self.visibility_state['grid'] = not self.visibility_state['grid']
             self.grid.visible = self.visibility_state['grid']
         elif event.key == 'r' or event.key == 'R':
-            self._set_initial_camera_view() # Usamos nuestra función de reseteo
+            self._set_initial_camera_view()
         elif event.key == 'q' or event.key == 'Q' or event.key == 'Escape':
             self.canvas.close()
             
@@ -153,13 +159,11 @@ class ACJVisualizer:
 
     def _on_mouse_move(self, event):
         """Actualiza las coordenadas del mouse en el debugger."""
-        # ... (esta función no necesita cambios)
         transform = self.view.camera.transform
         self.mouse_coords = transform.imap(event.pos)
 
     def _on_camera_change(self, event):
         """Actualiza el nivel de zoom cuando la cámara cambia."""
-        # ... (esta función no necesita cambios)
         self._update_debugger_text()
         
     def run(self):
