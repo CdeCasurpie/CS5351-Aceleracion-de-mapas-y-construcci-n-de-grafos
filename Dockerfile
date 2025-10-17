@@ -38,6 +38,13 @@ RUN cd /tmp/cgal/CGAL-6.0.1/build && cmake ..
 RUN cd /tmp/cgal/CGAL-6.0.1/build && make install
 RUN rm -rf /tmp/cgal
 
+# Install system dependencies for OSMnx and GeoPandas
+RUN apt-get install -y libspatialindex-dev libgeos-dev libproj-dev
+
+# Install dependencies for VisPy/PyQt5 (GUI rendering)
+RUN apt-get install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxrender1 libxext6 libfontconfig1
+RUN apt-get install -y python3-pyqt5 python3-pyqt5.qtopengl
+
 # Clean up apt cache
 RUN rm -rf /var/lib/apt/lists/*
 

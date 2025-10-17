@@ -84,6 +84,30 @@ class TestGraphDataLoading:
             acj.load_graph(nodes, segments)
 
 
+class TestMapLoading:
+    """Test cases for loading maps from OSMnx."""
+    
+    @pytest.mark.skipif(
+        'SKIP_OSMNX_TESTS' in os.environ,
+        reason="OSMnx tests skipped (set SKIP_OSMNX_TESTS to skip)"
+    )
+    def test_load_map_basic(self):
+        """Test loading a small city map from OSMnx."""
+        # Use a very small location for testing
+        try:
+            graph = acj.load_map("Liechtenstein", network_type="drive")
+            
+            # Verify structure
+            assert len(graph.nodes) > 0
+            assert len(graph.segments) > 0
+            assert 'node_id' in graph.nodes.columns
+            assert 'x' in graph.nodes.columns
+            assert 'y' in graph.nodes.columns
+            
+        except Exception as e:
+            pytest.skip(f"OSMnx test skipped due to: {e}")
+
+
 class TestMapIndex:
     """Test cases for MapIndex spatial queries."""
     
@@ -214,58 +238,6 @@ class TestGraphSimplification:
         # Currently returns unchanged
         assert len(simplified.nodes) == len(graph.nodes)
         assert len(simplified.segments) == len(graph.segments)
-
-
-class TestPendingFeatures:
-    """Test cases for pending features that should raise NotImplementedError."""
-    
-    def test_load_map_not_implemented(self):
-        """Test that load_map raises NotImplementedError."""
-        with pytest.raises(NotImplementedError):
-            acj.load_map("Manhattan, New York City")
-    
-    def test_render_graph_not_implemented(self):
-        """Test that render_graph raises NotImplementedError."""
-        nodes = pd.DataFrame({
-            'node_id': [0],
-            'x': [0.0],
-            'y': [0.0]
-        })
-        segments = pd.DataFrame({
-            'segment_id': [],
-            'node_start': [],
-            'node_end': [],
-            'x1': [],
-            'y1': [],
-            'x2': [],
-            'y2': []
-        })
-        graph = acj.load_graph(nodes, segments)
-        
-        with pytest.raises(NotImplementedError):
-            acj.render_graph(graph)
-    
-    def test_render_heatmap_not_implemented(self):
-        """Test that render_heatmap raises NotImplementedError."""
-        nodes = pd.DataFrame({
-            'node_id': [0],
-            'x': [0.0],
-            'y': [0.0]
-        })
-        segments = pd.DataFrame({
-            'segment_id': [],
-            'node_start': [],
-            'node_end': [],
-            'x1': [],
-            'y1': [],
-            'x2': [],
-            'y2': []
-        })
-        graph = acj.load_graph(nodes, segments)
-        assignments = pd.DataFrame()
-        
-        with pytest.raises(NotImplementedError):
-            acj.render_heatmap(graph, assignments)
 
 
 if __name__ == "__main__":

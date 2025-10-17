@@ -18,8 +18,9 @@ Data Format Standards:
 """
 
 import pandas as pd
-from typing import Tuple, Optional
 import os
+import pickle
+from pathlib import Path
 
 
 class GraphData:
@@ -105,7 +106,7 @@ def load_graph(nodes_df: pd.DataFrame, segments_df: pd.DataFrame) -> GraphData:
     return GraphData(nodes_df, segments_df)
 
 
-def load_map(city_name: str, cache_dir: str = "./cache") -> GraphData:
+def load_map(city_name: str, cache_dir: str = "./cache", network_type: str = "drive") -> GraphData:
     """
     Load map data from OpenStreetMap using OSMnx.
     
@@ -113,33 +114,100 @@ def load_map(city_name: str, cache_dir: str = "./cache") -> GraphData:
     converts it to the standard GraphData format, and caches the results
     for future use.
     
-    PENDING IMPLEMENTATION: This function is not yet implemented.
-    It will use OSMnx to download and process OpenStreetMap data.
-    
     Args:
         city_name: Name of the city (e.g., "Manhattan, New York City")
         cache_dir: Directory to cache downloaded data
+        network_type: Type of street network ('drive', 'walk', 'bike', 'all')
     
     Returns:
         GraphData object with the street network
     
     Raises:
-        NotImplementedError: This function is pending implementation
+        ImportError: If OSMnx is not installed
+        ValueError: If city cannot be found
     
     Example:
-        >>> # graph = acj.load_map("Manhattan, New York City")  # PENDING
+        >>> graph = acj.load_map("Cholula, Puebla, Mexico")
+        >>> print(f"Loaded {len(graph.nodes)} nodes and {len(graph.segments)} segments")
     """
-    raise NotImplementedError(
-        "load_map() is not yet implemented. "
-        "This function will use OSMnx to download OpenStreetMap data. "
-        "For now, use load_graph() with custom DataFrames."
-    )
+    try:
+        import osmnx as ox
+        import geopandas as gpd
+    except ImportError:
+        raise ImportError(
+            "OSMnx and GeoPandas are required for load_map(). "
+            "Install with: pip install osmnx geopandas"
+        )
     
-    # PENDING IMPLEMENTATION:
-    # 1. Check if data exists in cache_dir
-    # 2. If not cached:
-    #    - Use osmnx.graph_from_place(city_name, network_type='drive')
-    #    - Convert OSMnx graph to nodes/segments DataFrames
-    #    - Project to appropriate UTM zone
-    #    - Save to cache
-    # 3. Load from cache and return GraphData
+    # Create cache directory if it doesn't exist
+    cache_path = Path(cache_dir)
+    cache_path.mkdir(parents=True, exist_ok=True)
+    
+    # Generate cache filename from city name and network type
+    cache_filename = f"{city_name.replace(' ', '_').replace(',', '')}_{network_type}.pkl"
+    cache_file = cache_path / cache_filename
+    
+    # Check if cached data exists
+    if cache_file.exists():
+        print(f"Loading cached data from {cache_file}")
+        with open(cache_file, 'rb') as f:
+            cached_data = pickle.load(f)
+        return GraphData(cached_data['nodes'], cached_data['segments'])
+    
+    print(f"Downloading street network for '{city_name}' from OpenStreetMap...")
+    
+    # Download graph from OSMnx
+    try:
+        G = ox.graph_from_place(city_name, network_type=network_type, simplify=True)
+    except Exception as e:
+        raise ValueError(f"Could not download map for '{city_name}': {e}")
+    
+    print(f"Downloaded graph with {len(G.nodes)} nodes and {len(G.edges)} edges")
+    
+    # Project to UTM for meter-based coordinates
+    G_proj = ox.project_graph(G)
+    
+    # Extract nodes
+    nodes_data = []
+    node_id_map = {}  # Map OSM node IDs to sequential integers
+    
+    for idx, (osm_id, data) in enumerate(G_proj.nodes(data=True)):
+        node_id_map[osm_id] = idx
+        nodes_data.append({
+            'node_id': idx,
+            'x': data['x'],
+            'y': data['y']
+        })
+    
+    nodes_df = pd.DataFrame(nodes_data)
+    
+    # Extract segments (edges)
+    segments_data = []
+    segment_id = 0
+    
+    for u, v, data in G_proj.edges(data=True):
+        # Get node coordinates
+        u_node = G_proj.nodes[u]
+        v_node = G_proj.nodes[v]
+        
+        segments_data.append({
+            'segment_id': segment_id,
+            'node_start': node_id_map[u],
+            'node_end': node_id_map[v],
+            'x1': u_node['x'],
+            'y1': u_node['y'],
+            'x2': v_node['x'],
+            'y2': v_node['y']
+        })
+        segment_id += 1
+    
+    segments_df = pd.DataFrame(segments_data)
+    
+    print(f"Converted to ACJ format: {len(nodes_df)} nodes, {len(segments_df)} segments")
+    
+    # Cache the data
+    print(f"Caching data to {cache_file}")
+    with open(cache_file, 'wb') as f:
+        pickle.dump({'nodes': nodes_df, 'segments': segments_df}, f)
+    
+    return GraphData(nodes_df, segments_df)

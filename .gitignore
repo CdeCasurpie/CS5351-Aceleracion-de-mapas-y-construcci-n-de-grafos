@@ -39,3 +39,7 @@ Makefile
 # Keep only the main CMakeLists.txt files
 !CMakeLists.txt
 !acj/core/CMakeLists.txt
+
+# ACJ specific
+cache/
+output/

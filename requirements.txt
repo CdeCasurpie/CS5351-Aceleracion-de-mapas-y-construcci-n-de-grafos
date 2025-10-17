@@ -6,8 +6,11 @@ pandas>=1.3.0
 # Testing
 pytest>=7.0.0
 
-# Optional dependencies for future features
-# osmnx>=1.2.0  # PENDING: For load_map() functionality
-# folium>=0.12.0  # PENDING: For interactive map rendering
-# matplotlib>=3.5.0  # PENDING: For static plots
-# scipy>=1.7.0  # PENDING: For graph simplification (KDTree)
+# Geospatial data loading
+osmnx>=1.2.0
+geopandas>=0.12.0
+networkx>=2.8.0
+
+# Real-time visualization (GPU-accelerated)
+vispy>=0.12.0
+PyQt5>=5.15.0  # Backend for VisPy window management

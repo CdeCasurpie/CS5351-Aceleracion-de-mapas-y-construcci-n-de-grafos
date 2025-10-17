@@ -7,7 +7,7 @@ on graph data using CGAL-based spatial indexing structures.
 
 import pandas as pd
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Dict
 from .io import GraphData
 
 
@@ -207,28 +207,109 @@ class MapIndex:
             "This requires extending the C++ core with AABB tree and "
             "point-to-segment distance computation."
         )
+    
+    def get_render_data(self, assignments: pd.DataFrame = None) -> Dict[str, np.ndarray]:
+        """
+        Pre-compute all data needed for GPU-accelerated real-time rendering.
         
-        # TODO: Implementation steps:
-        # 1. Build segment index if not already built
-        #    self._build_segment_index()
-        #
-        # 2. Extract point coordinates
-        #    point_coords = points_df[['x', 'y']].values.astype(np.float64)
-        #
-        # 3. Call C++ function for segment assignment
-        #    indices, distances, projections = self._acj_core.assign_to_segments(
-        #        point_coords,
-        #        self._segment_index
-        #    )
-        #
-        # 4. Map indices to segment_ids and build result DataFrame
-        #    segment_ids = self.graph_data.segments['segment_id'].values
-        #    result = points_df.copy()
-        #    result['assigned_segment_id'] = segment_ids[indices]
-        #    result['distance'] = distances
-        #    result['projection_x'] = projections[:, 0]
-        #    result['projection_y'] = projections[:, 1]
-        #    return result
+        This method prepares vertex buffers and colors that can be directly
+        consumed by VisPy for efficient GPU rendering. All color calculations
+        are done once here, not during rendering.
+        
+        Args:
+            assignments: Optional DataFrame with assignment results from assign_to_endpoints()
+                If provided, nodes will be colored based on crime density.
+                If None, all nodes will be rendered in a default color.
+        
+        Returns:
+            Dictionary containing pre-computed render data:
+                - 'node_vertices': (N, 2) array of node [x, y] coordinates
+                - 'node_colors': (N, 4) array of node RGBA colors [0-1]
+                - 'segment_vertices': (M*2, 2) array of segment endpoints
+                - 'segment_colors': (M*2, 4) array of colors for segment gradient
+                - 'segment_connectivity': (M, 2) array of vertex indices to connect
+        
+        Example:
+            >>> assignments = map_index.assign_to_endpoints(crimes)
+            >>> render_data = map_index.get_render_data(assignments)
+            >>> # render_data is ready for VisPy consumption
+        """
+        # Extract node vertices (N, 2)
+        node_vertices = self.graph_data.nodes[['x', 'y']].values.astype(np.float32)
+        n_nodes = len(node_vertices)
+        
+        # Calculate node colors based on assignments
+        if assignments is not None:
+            # Count crimes per node
+            crime_counts = assignments['assigned_node_id'].value_counts()
+            
+            # Create color array (default white for nodes with no crimes)
+            node_colors = np.ones((n_nodes, 4), dtype=np.float32)  # RGBA
+            
+            # Calculate colors for nodes with crimes
+            max_crimes = crime_counts.max() if len(crime_counts) > 0 else 1
+            
+            for node_id in self.graph_data.nodes['node_id']:
+                count = crime_counts.get(node_id, 0)
+                if count > 0:
+                    # Normalize to [0, 1]
+                    intensity = count / max_crimes
+                    
+                    # Color gradient: white -> yellow -> orange -> red
+                    # White (0) -> Yellow (0.33) -> Orange (0.66) -> Red (1.0)
+                    if intensity < 0.33:
+                        # White to Yellow
+                        t = intensity / 0.33
+                        r = 1.0
+                        g = 1.0
+                        b = 1.0 - t
+                    elif intensity < 0.66:
+                        # Yellow to Orange
+                        t = (intensity - 0.33) / 0.33
+                        r = 1.0
+                        g = 1.0 - 0.35 * t
+                        b = 0.0
+                    else:
+                        # Orange to Red
+                        t = (intensity - 0.66) / 0.34
+                        r = 1.0
+                        g = 0.65 - 0.65 * t
+                        b = 0.0
+                    
+                    node_colors[node_id] = [r, g, b, 1.0]
+        else:
+            # Default: all nodes gray
+            node_colors = np.full((n_nodes, 4), [0.5, 0.5, 0.5, 1.0], dtype=np.float32)
+        
+        # Prepare segment data for gradient rendering
+        n_segments = len(self.graph_data.segments)
+        segment_vertices = np.zeros((n_segments * 2, 2), dtype=np.float32)
+        segment_colors = np.zeros((n_segments * 2, 4), dtype=np.float32)
+        segment_connectivity = np.zeros((n_segments, 2), dtype=np.int32)
+        
+        for i, seg in enumerate(self.graph_data.segments.itertuples()):
+            # Get vertex indices
+            start_idx = i * 2
+            end_idx = i * 2 + 1
+            
+            # Set vertex positions
+            segment_vertices[start_idx] = [seg.x1, seg.y1]
+            segment_vertices[end_idx] = [seg.x2, seg.y2]
+            
+            # Set vertex colors (from node colors for gradient)
+            segment_colors[start_idx] = node_colors[seg.node_start]
+            segment_colors[end_idx] = node_colors[seg.node_end]
+            
+            # Set connectivity
+            segment_connectivity[i] = [start_idx, end_idx]
+        
+        return {
+            'node_vertices': node_vertices,
+            'node_colors': node_colors,
+            'segment_vertices': segment_vertices,
+            'segment_colors': segment_colors,
+            'segment_connectivity': segment_connectivity
+        }
     
     def __repr__(self) -> str:
         return (
