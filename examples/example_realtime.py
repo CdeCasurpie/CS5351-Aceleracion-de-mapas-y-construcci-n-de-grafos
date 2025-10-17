@@ -23,8 +23,8 @@ def generate_random_points(
     graph_data, 
     n_points=500, 
     seed=42,
-    num_hotspots=30,
-    hotspot_radius=150.0
+    num_hotspots=60,
+    hotspot_radius=400.0
 ):
     """
     Generates random points in clusters around selected "hotspot" segments.
@@ -120,7 +120,7 @@ def main():
     print()
     
     # Configuration
-    city_name = "Cholula, Puebla, Mexico"
+    city_name = "São Paulo, Brazil"
     n_crimes = 10000000
     
     # Step 1: Load city map from OpenStreetMap
