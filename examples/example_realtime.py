@@ -24,7 +24,7 @@ def generate_random_points(
     n_points=500, 
     seed=42,
     num_hotspots=30,
-    hotspot_radius=100.0
+    hotspot_radius=150.0
 ):
     """
     Generates random points in clusters around selected "hotspot" segments.
