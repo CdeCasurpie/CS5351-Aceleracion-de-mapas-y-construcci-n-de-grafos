@@ -121,7 +121,7 @@ def main():
     
     # Configuration
     city_name = "São Paulo, Brazil"
-    n_crimes = 10000000
+    n_crimes = 1000000
     
     # Step 1: Load city map from OpenStreetMap
     print(f"[1/4] Loading street network for '{city_name}'...")

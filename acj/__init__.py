@@ -15,7 +15,7 @@ Author: Cèsar, Alejandro, Jeremy.
 from .map_index import MapIndex
 from .io import load_graph, load_map
 from .graph import simplify_graph
-from .render import render_graph, render_heatmap
+from .render import render_graph, render_heatmap, render_comparison
 
 __version__ = "0.1.0"
 __all__ = [

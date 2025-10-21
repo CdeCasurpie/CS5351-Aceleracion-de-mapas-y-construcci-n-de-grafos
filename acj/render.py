@@ -9,11 +9,13 @@ from .io import GraphData
 from .map_index import MapIndex
 import pandas as pd
 from typing import Optional
+import numpy as np
 
 try:
     from vispy import scene
     from vispy.scene import visuals
     import vispy.app
+    from vispy.scene import Grid
 except ImportError:
     raise ImportError(
         "VisPy is required for real-time visualization. "
@@ -172,16 +174,183 @@ class ACJVisualizer:
         vispy.app.run()
         print("Visualizer closed.")
 
-# --- Funciones de Conveniencia para el Usuario Final ---
+
+
+
+class ACJComparator:
+    """Real-time visual comparison tool for two street networks."""
+
+    def __init__(self, map_index_left: MapIndex, map_index_right: MapIndex,
+                 assignments_left: Optional[pd.DataFrame] = None,
+                 assignments_right: Optional[pd.DataFrame] = None,
+                 title: str = "ACJ Graph Comparison",
+                 title_left: str = "Original",
+                 title_right: str = "Simplified",
+                 canvas_size=(1600, 900)):
+
+        print("Preparing render data for comparison...")
+        self.render_data_left = map_index_left.get_render_data(assignments_left, outlier_percentile=98.0)
+        self.render_data_right = map_index_right.get_render_data(assignments_right, outlier_percentile=98.0)
+
+        self.canvas = scene.SceneCanvas(
+            keys='interactive', title=title, size=canvas_size, show=True, bgcolor='#1e1e1e'
+        )
+
+        self.grid = self.canvas.central_widget.add_grid(margin=10)
+        print("Creating shared PanZoomCamera...")
+        self.camera = scene.PanZoomCamera(aspect=1.0)
+
+        # Left and right linked views
+        self.view_left = self.grid.add_view(row=0, col=0, border_color='gray', camera=self.camera)
+        self.view_right = self.grid.add_view(row=0, col=1, border_color='gray', camera=self.camera)
+
+        # Render left view
+        self.segments_left = visuals.Line(
+            pos=self.render_data_left['segment_vertices'], 
+            color=self.render_data_left['segment_colors'],
+            connect=self.render_data_left['segment_connectivity'], 
+            width=5.0, method='gl', parent=self.view_left.scene
+        )
+        self.nodes_left = visuals.Markers(
+            pos=self.render_data_left['node_vertices'],
+            face_color=self.render_data_left['node_colors'],
+            size=12, edge_width=0.5, edge_color='yellow',
+            parent=self.view_left.scene
+        )
+
+        # Render right view
+        self.segments_right = visuals.Line(
+            pos=self.render_data_right['segment_vertices'], 
+            color=self.render_data_right['segment_colors'],
+            connect=self.render_data_right['segment_connectivity'], 
+            width=5.0, method='gl', parent=self.view_right.scene
+        )
+        self.nodes_right = visuals.Markers(
+            pos=self.render_data_right['node_vertices'],
+            face_color=self.render_data_right['node_colors'],
+            size=12, edge_width=0.5, edge_color='yellow',
+            parent=self.view_right.scene
+        )
+
+        # On-screen display (OSD) text
+        self.debugger_text_left = visuals.Text("", pos=(15, 15), anchor_x='left', anchor_y='bottom',
+                                               color='white', font_size=10, parent=self.canvas.scene)
+        self.debugger_text_right = visuals.Text("", pos=(canvas_size[0] - 15, 15),
+                                                anchor_x='right', anchor_y='bottom',
+                                                color='white', font_size=10, parent=self.canvas.scene)
+        self.title_text_left = visuals.Text(title_left, pos=(15, canvas_size[1] - 15),
+                                            anchor_x='left', anchor_y='top', color='white',
+                                            font_size=14, bold=True, parent=self.canvas.scene)
+        self.title_text_right = visuals.Text(title_right, pos=(canvas_size[0] - 15, canvas_size[1] - 15),
+                                             anchor_x='right', anchor_y='top', color='white',
+                                             font_size=14, bold=True, parent=self.canvas.scene)
+
+        self._set_initial_camera_view()
+        self.visibility_state = {'nodes': True, 'segments': True}
+
+        # Event bindings
+        self.canvas.events.key_press.connect(self._on_key_press)
+        self.view_left.camera.events.transform_change.connect(self._on_camera_change)
+        self._update_debugger_text()
+
+        print("Comparison tool ready. Keys: (N)odes, (L)ines, (R)eset, (Q)uit")
+
+    def _set_initial_camera_view(self):
+        """Center camera around the left view’s bounding box."""
+        node_vertices = self.render_data_left['node_vertices']
+        if len(node_vertices) == 0:
+            return
+        x_min, y_min = node_vertices.min(axis=0)
+        x_max, y_max = node_vertices.max(axis=0)
+        padding_x = (x_max - x_min) * 0.1
+        padding_y = (y_max - y_min) * 0.1
+        self.view_left.camera.set_range(
+            x=(x_min - padding_x, x_max + padding_x),
+            y=(y_min - padding_y, y_max + padding_y),
+            margin=0
+        )
+
+    def _update_debugger_text(self):
+        """Update on-screen debug info for both views."""
+        vis_nodes = "ON" if self.visibility_state['nodes'] else "OFF"
+        vis_segments = "ON" if self.visibility_state['segments'] else "OFF"
+        zoom_level = self.view_left.camera.rect.width
+
+        common_text = (
+            f"Zoom: {zoom_level:.2f}\n"
+            f"(N) Nodes: {vis_nodes}\n"
+            f"(L) Segments: {vis_segments}\n"
+            f"(R) Reset | (Q) Quit"
+        )
+        self.debugger_text_left.text = (
+            f"Nodes: {len(self.render_data_left['node_vertices'])}\n"
+            f"Segments: {len(self.render_data_left['segment_connectivity'])}\n"
+            f"{common_text}"
+        )
+        self.debugger_text_right.text = (
+            f"Nodes: {len(self.render_data_right['node_vertices'])}\n"
+            f"Segments: {len(self.render_data_right['segment_connectivity'])}\n"
+            f"{common_text}"
+        )
+        self.debugger_text_right.pos = (self.canvas.size[0] - 15, 15)
+
+    def _on_key_press(self, event):
+        """Handle keypress events for toggling or resetting view."""
+        if event.key in ('n', 'N'):
+            self.visibility_state['nodes'] = not self.visibility_state['nodes']
+            self.nodes_left.visible = self.nodes_right.visible = self.visibility_state['nodes']
+        elif event.key in ('l', 'L'):
+            self.visibility_state['segments'] = not self.visibility_state['segments']
+            self.segments_left.visible = self.segments_right.visible = self.visibility_state['segments']
+        elif event.key in ('r', 'R'):
+            self._set_initial_camera_view()
+        elif event.key in ('q', 'Q', 'Escape'):
+            self.canvas.close()
+        self._update_debugger_text()
+
+    def _on_camera_change(self, event):
+        """Refresh debug info when camera zoom or pan changes."""
+        self._update_debugger_text()
+
+    def run(self):
+        """Start the interactive visualization loop."""
+        print("\nStarting comparison visualizer...")
+        vispy.app.run()
+        print("Visualizer closed.")
+
+
+
+
+# --- Public Visualization Functions ---
+
 def render_realtime(map_index: MapIndex, assignments: Optional[pd.DataFrame] = None,
                    title: str = "Street Network Visualization"):
+    """Render an interactive real-time visualization of a single street network."""
     visualizer = ACJVisualizer(map_index, assignments, title=title)
     visualizer.run()
     return visualizer
 
+def render_graph(map_index: MapIndex, title: str = "Street Network Graph"):
+    """Render the base street network without any assignments."""
+    return render_realtime(map_index, assignments=None, title=title)
+
 def render_heatmap(map_index: MapIndex, assignments: pd.DataFrame,
                   title: str = "Crime Density Heatmap"):
+    """Render a heatmap visualization using the given assignments."""
     return render_realtime(map_index, assignments, title=title)
 
-def render_graph(map_index: MapIndex, title: str = "Street Network Graph"):
-    return render_realtime(map_index, assignments=None, title=title)
+def render_comparison(map_index_left: MapIndex, map_index_right: MapIndex,
+                      assignments_left: Optional[pd.DataFrame] = None,
+                      assignments_right: Optional[pd.DataFrame] = None,
+                      title: str = "ACJ Graph Comparison",
+                      title_left: str = "Original Graph",
+                      title_right: str = "Simplified Graph"):
+    """Render a side-by-side comparison between two MapIndex objects."""
+    visualizer = ACJComparator(
+        map_index_left, map_index_right,
+        assignments_left, assignments_right,
+        title, title_left, title_right
+    )
+    visualizer.run()
+    return visualizer
+

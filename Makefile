@@ -11,6 +11,7 @@ help:
 	@echo "  make test              - Run ACJ library tests"
 	@echo "  make example           - Run basic ACJ example"
 	@echo "  make example-realtime  - Run real-time interactive visualization"
+	@echo "  make example-simplification - Run graph simplification comparison"
 	@echo "  make clean             - Clean build artifacts"
 	@echo "  make clean-all         - Clean everything including Docker cache"
 	@echo ""
@@ -38,6 +39,9 @@ example: ## Run basic ACJ library example
 
 example-realtime: ## Run real-time interactive visualization with VisPy
 	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build python3 examples/example_realtime.py"
+
+example-simplification: ## Run graph simplification comparison
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build python3 examples/example_simplification.py"
 
 # Cleanup
 clean: ## Clean build artifacts
