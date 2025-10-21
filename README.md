@@ -462,18 +462,6 @@ make build
 - Check city name spelling (Nominatim format)
 - Try broader query (country name)
 
----
-
-## Citation
-
-```bibtex
-@software{acj2024,
-  title={ACJ: Advanced Crime-to-Junction Assignment Library},
-  author={Based on CGAL integration by Alejandro},
-  year={2024},
-  url={https://github.com/yourusername/acj}
-}
-```
 
 ---
 
@@ -488,7 +476,6 @@ MIT License
 Issues and pull requests welcome. Please include tests with new features.
 
 **Acknowledgments:**
-- Alejandro: CGAL integration and performance optimization
 - CGAL Project: Computational geometry library
 - OSMnx: OpenStreetMap data interface
 - VisPy: GPU-accelerated visualization framework
