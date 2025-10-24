@@ -14,7 +14,7 @@ Author: Cèsar, Alejandro, Jeremy.
 
 from .map_index import MapIndex
 from .io import load_graph, load_map
-from .graph import simplify_graph
+from .graph import simplify_graph, simplify_graph_topological, simplify_graph_geometric
 from .render import render_graph, render_heatmap, render_comparison
 
 __version__ = "0.1.0"
@@ -23,6 +23,9 @@ __all__ = [
     "load_graph",
     "load_map",
     "simplify_graph",
+    "simplify_graph_topological",
+    "simplify_graph_geometric",
     "render_graph",
     "render_heatmap",
+    "render_comparison",
 ]

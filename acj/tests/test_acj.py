@@ -198,7 +198,7 @@ class TestMapIndex:
         assert result.loc[1, 'crime_type'] == 'assault'
     
     def test_assign_to_segments_not_implemented(self, simple_graph):
-        """Test that assign_to_segments raises NotImplementedError."""
+        """Test that assign_to_segments is not implemented."""
         map_index = acj.MapIndex(simple_graph)
         
         points = pd.DataFrame({
@@ -207,15 +207,98 @@ class TestMapIndex:
             'y': [0.0]
         })
         
-        with pytest.raises(NotImplementedError):
-            map_index.assign_to_segments(points)
+        # assign_to_segments method doesn't exist yet
+        assert not hasattr(map_index, 'assign_to_segments')
 
 
 class TestGraphSimplification:
     """Test cases for graph simplification."""
     
-    def test_simplify_graph_returns_unchanged(self):
-        """Test that simplify_graph currently returns unchanged graph."""
+    def test_simplify_graph_topological_basic(self):
+        """Test basic topological simplification."""
+        # Create a simple chain: A-B-C-D where B and C are degree-2 nodes
+        nodes = pd.DataFrame({
+            'node_id': [0, 1, 2, 3],
+            'x': [0.0, 10.0, 20.0, 30.0],
+            'y': [0.0, 0.0, 0.0, 0.0]
+        })
+        
+        segments = pd.DataFrame({
+            'segment_id': [0, 1, 2],
+            'node_start': [0, 1, 2],
+            'node_end': [1, 2, 3],
+            'x1': [0.0, 10.0, 20.0],
+            'y1': [0.0, 0.0, 0.0],
+            'x2': [10.0, 20.0, 30.0],
+            'y2': [0.0, 0.0, 0.0]
+        })
+        
+        graph = acj.load_graph(nodes, segments)
+        simplified = acj.simplify_graph_topological(graph)
+        
+        # Should reduce from 4 nodes to 3 nodes (A, C, D) - B is removed
+        assert len(simplified.nodes) == 3
+        assert len(simplified.segments) == 2
+        assert 0 in simplified.nodes['node_id'].values  # Node A
+        assert 2 in simplified.nodes['node_id'].values  # Node C
+        assert 3 in simplified.nodes['node_id'].values  # Node D
+    
+    def test_simplify_graph_topological_intersection_preserved(self):
+        """Test that intersections (degree != 2) are preserved."""
+        # Create a T-intersection: A-B-C with D-B-E
+        nodes = pd.DataFrame({
+            'node_id': [0, 1, 2, 3, 4],
+            'x': [0.0, 10.0, 20.0, 10.0, 10.0],
+            'y': [0.0, 0.0, 0.0, 10.0, -10.0]
+        })
+        
+        segments = pd.DataFrame({
+            'segment_id': [0, 1, 2, 3],
+            'node_start': [0, 1, 1, 1],
+            'node_end': [1, 2, 3, 4],
+            'x1': [0.0, 10.0, 10.0, 10.0],
+            'y1': [0.0, 0.0, 0.0, 0.0],
+            'x2': [10.0, 20.0, 10.0, 10.0],
+            'y2': [0.0, 0.0, 10.0, -10.0]
+        })
+        
+        graph = acj.load_graph(nodes, segments)
+        simplified = acj.simplify_graph_topological(graph)
+        
+        # Should preserve the intersection (node 1) - it has degree 4
+        assert len(simplified.nodes) == 5  # All nodes preserved (no degree-2 nodes)
+        assert 1 in simplified.nodes['node_id'].values  # Intersection preserved
+    
+    def test_simplify_graph_geometric_basic(self):
+        """Test basic geometric simplification."""
+        # Create two close nodes that should be merged
+        nodes = pd.DataFrame({
+            'node_id': [0, 1, 2],
+            'x': [0.0, 5.0, 100.0],  # Nodes 0 and 1 are close
+            'y': [0.0, 0.0, 0.0]
+        })
+        
+        segments = pd.DataFrame({
+            'segment_id': [0, 1],
+            'node_start': [0, 1],
+            'node_end': [1, 2],
+            'x1': [0.0, 5.0],
+            'y1': [0.0, 0.0],
+            'x2': [5.0, 100.0],
+            'y2': [0.0, 0.0]
+        })
+        
+        graph = acj.load_graph(nodes, segments)
+        
+        # Test with threshold that should merge nodes 0 and 1
+        simplified = acj.simplify_graph_geometric(graph, threshold_meters=10.0)
+        
+        # Should have fewer nodes due to geometric clustering
+        assert len(simplified.nodes) < len(graph.nodes)
+        assert len(simplified.segments) <= len(graph.segments)
+    
+    def test_simplify_graph_automatic_selection(self):
+        """Test that simplify_graph automatically selects the right method."""
         nodes = pd.DataFrame({
             'node_id': [0, 1, 2],
             'x': [0.0, 10.0, 100.0],
@@ -233,11 +316,53 @@ class TestGraphSimplification:
         })
         
         graph = acj.load_graph(nodes, segments)
-        simplified = acj.simplify_graph(graph, threshold_meters=15.0)
         
-        # Currently returns unchanged
-        assert len(simplified.nodes) == len(graph.nodes)
-        assert len(simplified.segments) == len(graph.segments)
+        # threshold_meters = 0 should use topological
+        simplified_topo = acj.simplify_graph(graph, threshold_meters=0)
+        simplified_topo_direct = acj.simplify_graph_topological(graph)
+        
+        # Should be equivalent
+        assert len(simplified_topo.nodes) == len(simplified_topo_direct.nodes)
+        assert len(simplified_topo.segments) == len(simplified_topo_direct.segments)
+        
+        # threshold_meters > 0 should use geometric
+        simplified_geo = acj.simplify_graph(graph, threshold_meters=15.0)
+        # Results may vary due to clustering, but should be different from topological
+        assert len(simplified_geo.nodes) <= len(graph.nodes)
+    
+    def test_simplify_graph_empty_graph(self):
+        """Test simplification with empty graph."""
+        nodes = pd.DataFrame({'node_id': [], 'x': [], 'y': []})
+        segments = pd.DataFrame({
+            'segment_id': [], 'node_start': [], 'node_end': [],
+            'x1': [], 'y1': [], 'x2': [], 'y2': []
+        })
+        
+        graph = acj.load_graph(nodes, segments)
+        simplified = acj.simplify_graph(graph)
+        
+        assert len(simplified.nodes) == 0
+        assert len(simplified.segments) == 0
+    
+    def test_simplify_graph_single_node(self):
+        """Test simplification with single node."""
+        nodes = pd.DataFrame({
+            'node_id': [0],
+            'x': [0.0],
+            'y': [0.0]
+        })
+        
+        segments = pd.DataFrame({
+            'segment_id': [], 'node_start': [], 'node_end': [],
+            'x1': [], 'y1': [], 'x2': [], 'y2': []
+        })
+        
+        graph = acj.load_graph(nodes, segments)
+        # Use topological simplification for single node (no segments)
+        simplified = acj.simplify_graph_topological(graph)
+        
+        assert len(simplified.nodes) == 1
+        assert len(simplified.segments) == 0
 
 
 if __name__ == "__main__":

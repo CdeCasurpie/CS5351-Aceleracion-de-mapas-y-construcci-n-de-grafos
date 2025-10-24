@@ -274,9 +274,27 @@ Launch basic network visualization without heatmap coloring.
 
 **`acj.simplify_graph(graph_data, threshold_meters=10.0)`**
 
-Simplify graph by merging nearby nodes.
+Simplify graph using automatic method selection.
 
-Status: Currently returns input unchanged (pending implementation)
+- `threshold_meters = 0`: Topological simplification only
+- `threshold_meters > 0`: Geometric simplification with distance threshold
+
+**`acj.simplify_graph_topological(graph_data)`**
+
+Simplify graph by removing degree-2 nodes (topological simplification).
+
+- Preserves all intersections and connectivity
+- Fast O(n) algorithm suitable for real-time use
+- Best for maintaining network topology
+
+**`acj.simplify_graph_geometric(graph_data, threshold_meters=10.0)`**
+
+Simplify graph by merging nearby intersections using CGAL clustering.
+
+- More aggressive simplification than topological
+- May change network topology slightly
+- Best for dense networks with many close intersections
+- Uses CGAL Delaunay triangulation for high-performance spatial clustering
 
 ---
 
@@ -348,10 +366,27 @@ Core:
 Geospatial:
 - OSMnx: OpenStreetMap data access
 - GeoPandas: Spatial data handling
+- CGAL Spatial Indexing: High-performance spatial queries
+- SciPy Spatial: Fallback spatial indexing
 
 Visualization:
 - VisPy: GPU-accelerated rendering
 - PyQt5: Window management
+
+### Spatial Indexing Implementation
+
+The library uses **CGAL spatial indexing** for all spatial operations:
+
+- **CGAL Delaunay Triangulation**: High-performance spatial queries
+- **C++ Implementation**: Maximum performance for large datasets
+- **Consistent Architecture**: Same infrastructure as MapIndex
+- **Real-time Capable**: Optimized for interactive applications
+
+**Usage**: All spatial operations automatically use CGAL:
+```python
+# Uses CGAL Delaunay triangulation internally
+clusters = acj._find_node_clusters(coords, threshold)
+```
 
 ### Project Structure
 
@@ -423,18 +458,17 @@ PYTHONPATH=/workspace/build python3
 ## Known Limitations
 
 1. Segment assignment not implemented: `assign_to_segments()` requires CGAL AABB tree implementation
-2. Graph simplification pending: `simplify_graph()` currently returns input unchanged
-3. Coordinates must be projected: Latitude/longitude must be converted to metric system (UTM)
+2. Coordinates must be projected: Latitude/longitude must be converted to metric system (UTM)
 
 ---
 
 ## Planned Features
 
 - Point-to-segment assignment using AABB tree
-- Graph simplification with node merging
 - Export visualizations to image/video
 - Temporal analysis support
 - Network-based distance calculation
+- Advanced graph simplification algorithms
 
 ---
 

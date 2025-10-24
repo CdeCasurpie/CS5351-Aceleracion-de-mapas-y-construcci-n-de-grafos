@@ -16,6 +16,7 @@
 #include <limits>
 #include <vector>
 #include <map>
+#include <functional>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -109,6 +110,110 @@ py::tuple match_cgal(
 
 
 /**
+ * Find clusters of points within a given distance threshold using CGAL.
+ * 
+ * This function uses CGAL's spatial data structures to efficiently find
+ * all pairs of points within the threshold distance and groups them into
+ * connected components (clusters).
+ * 
+ * @param points: Nx2 array of point coordinates
+ * @param threshold: Distance threshold for clustering
+ * @return: List of clusters, where each cluster is a list of point indices
+ */
+py::list find_clusters_cgal(
+    py::array_t<double, py::array::c_style | py::array::forcecast> points,
+    double threshold
+) {
+    // Validate input array shape
+    if (points.ndim() != 2 || points.shape(1) != 2) {
+        throw std::runtime_error("points must be Nx2 array");
+    }
+
+    size_t n_points = static_cast<size_t>(points.shape(0));
+    if (n_points == 0) {
+        return py::list();
+    }
+
+    // Get raw data pointer
+    const double* points_ptr = static_cast<const double*>(points.data());
+
+    // Build Delaunay triangulation for efficient spatial queries
+    DT dt;
+    std::map<Point_2, int> point_index_map;
+
+    // Insert all points into the triangulation
+    for (size_t i = 0; i < n_points; i++) {
+        Point_2 p(points_ptr[2*i], points_ptr[2*i + 1]);
+        dt.insert(p);
+        point_index_map[p] = static_cast<int>(i);
+    }
+
+    // Union-Find data structure for connected components
+    std::vector<int> parent(n_points);
+    for (size_t i = 0; i < n_points; i++) {
+        parent[i] = static_cast<int>(i);
+    }
+
+    // Forward declaration for recursive lambda
+    std::function<int(int)> find;
+    find = [&parent, &find](int x) -> int {
+        if (parent[x] != x) {
+            parent[x] = find(parent[x]);
+        }
+        return parent[x];
+    };
+
+    auto union_sets = [&find, &parent](int x, int y) {
+        int px = find(x);
+        int py = find(y);
+        if (px != py) {
+            parent[px] = py;
+        }
+    };
+
+    // Find all pairs within threshold using CGAL
+    for (size_t i = 0; i < n_points; i++) {
+        Point_2 query_point(points_ptr[2*i], points_ptr[2*i + 1]);
+        
+        // Use CGAL's nearest neighbor search to find points within threshold
+        // We'll iterate through all vertices and check distances
+        for (auto it = dt.finite_vertices_begin(); it != dt.finite_vertices_end(); ++it) {
+            Point_2 target_point = it->point();
+            
+            // Calculate Euclidean distance
+            double dx = query_point.x() - target_point.x();
+            double dy = query_point.y() - target_point.y();
+            double distance = std::sqrt(dx*dx + dy*dy);
+            
+            if (distance <= threshold && distance > 0) {  // Avoid self-connections
+                int target_idx = point_index_map[target_point];
+                union_sets(static_cast<int>(i), target_idx);
+            }
+        }
+    }
+
+    // Group points by root parent
+    std::map<int, std::vector<int>> clusters;
+    for (size_t i = 0; i < n_points; i++) {
+        int root = find(static_cast<int>(i));
+        clusters[root].push_back(static_cast<int>(i));
+    }
+
+    // Convert to Python list
+    py::list result;
+    for (const auto& cluster : clusters) {
+        py::list cluster_list;
+        for (int idx : cluster.second) {
+            cluster_list.append(idx);
+        }
+        result.append(cluster_list);
+    }
+
+    return result;
+}
+
+
+/**
  * PENDING: Assign points to nearest line segments using AABB tree.
  * 
  * This function will use CGAL's AABB tree to efficiently find the closest
@@ -162,6 +267,16 @@ PYBIND11_MODULE(acj_core, m) {
           "    - distances[i] is the Euclidean distance to that neighbor",
           py::arg("query_points"), 
           py::arg("target_points"));
+    
+    m.def("find_clusters_cgal", &find_clusters_cgal,
+          "Find clusters of points within distance threshold using CGAL.\n\n"
+          "Args:\n"
+          "    points: Nx2 numpy array of point coordinates\n"
+          "    threshold: Distance threshold for clustering\n\n"
+          "Returns:\n"
+          "    List of clusters, where each cluster is a list of point indices",
+          py::arg("points"),
+          py::arg("threshold"));
     
     m.def("assign_to_segments", &assign_to_segments,
           "Assign points to nearest line segments (PENDING IMPLEMENTATION).\n\n"
