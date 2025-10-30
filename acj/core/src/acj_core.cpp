@@ -25,8 +25,8 @@
 
 // CGAL type definitions
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef CGAL::Delaunay_triangulation_2<K> DT;
-typedef K::Point_2 Point_2;
+typedef CGAL::Delaunay_triangulation_2<K>                   DT;
+typedef K::Point_2                                          Point_pt;
 
 namespace py = pybind11;
 
@@ -71,18 +71,18 @@ py::tuple match_point(
 
     // Build Delaunay triangulation from target points
     DT dt;
-    std::map<Point_2, int> point_index_map;
+    std::map<Point_pt, int> point_index_map;
 
     // Insert all target points into the triangulation
     for (size_t j = 0; j < n_target; j++) {
-        Point_2 p(target_ptr[2*j], target_ptr[2*j + 1]);
+        Point_pt p(target_ptr[2*j], target_ptr[2*j + 1]);
         dt.insert(p);
         point_index_map[p] = static_cast<int>(j);
     }
 
     // Query nearest neighbor for each query point
     for (size_t i = 0; i < n_query; i++) {
-        Point_2 query(query_ptr[2*i], query_ptr[2*i + 1]);
+        Point_pt query(query_ptr[2*i], query_ptr[2*i + 1]);
         
         // Find nearest vertex in triangulation (O(log M) operation)
         auto nearest_vertex = dt.nearest_vertex(query);
@@ -137,11 +137,11 @@ py::list find_clusters_cgal(
 
     // Build Delaunay triangulation for efficient spatial queries
     DT dt;
-    std::map<Point_2, int> point_index_map;
+    std::map<Point_pt, int> point_index_map;
 
     // Insert all points into the triangulation
     for (size_t i = 0; i < n_points; i++) {
-        Point_2 p(points_ptr[2*i], points_ptr[2*i + 1]);
+        Point_pt p(points_ptr[2*i], points_ptr[2*i + 1]);
         dt.insert(p);
         point_index_map[p] = static_cast<int>(i);
     }
@@ -171,12 +171,12 @@ py::list find_clusters_cgal(
 
     // Find all pairs within threshold using CGAL
     for (size_t i = 0; i < n_points; i++) {
-        Point_2 query_point(points_ptr[2*i], points_ptr[2*i + 1]);
+        Point_pt query_point(points_ptr[2*i], points_ptr[2*i + 1]);
         
         // Use CGAL's nearest neighbor search to find points within threshold
         // We'll iterate through all vertices and check distances
         for (auto it = dt.finite_vertices_begin(); it != dt.finite_vertices_end(); ++it) {
-            Point_2 target_point = it->point();
+            Point_pt target_point = it->point();
             
             // Calculate Euclidean distance
             double dx = query_point.x() - target_point.x();
