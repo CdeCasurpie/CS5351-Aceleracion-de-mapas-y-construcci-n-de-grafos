@@ -15,6 +15,7 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <utility>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
