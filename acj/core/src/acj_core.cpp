@@ -1,4 +1,4 @@
-/**
+/*
  * ACJ Core - CGAL-based spatial indexing for point-to-graph assignment
  * 
  * This module provides high-performance spatial queries using CGAL
@@ -7,7 +7,7 @@
  *  
  * Functions:
  *   - match_point: Find nearest point in target set for each query point
- *   - assign_to_segments: (PENDING) Find nearest line segment for each point
+ *   - match_segment: (PENDING) Find nearest line segment for each point
  */
 
 #include <cmath>
@@ -228,12 +228,12 @@ py::list find_clusters_cgal(
  * 
  * Status: NOT IMPLEMENTED
  */
-py::tuple assign_to_segments(
+py::tuple match_segment(
     py::array_t<double, py::array::c_style | py::array::forcecast> query_points,
     py::array_t<double, py::array::c_style | py::array::forcecast> segments
 ) {
     throw std::runtime_error(
-        "assign_to_segments() is not yet implemented. "
+        "match_segment() is not yet implemented. "
         "This requires CGAL AABB tree support for line segments."
     );
     
@@ -276,7 +276,7 @@ PYBIND11_MODULE(acj_core, m) {
           py::arg("points"),
           py::arg("threshold"));
     
-    m.def("assign_to_segments", &assign_to_segments,
+    m.def("match_segment", &match_segment,
           "Assign points to nearest line segments (PENDING IMPLEMENTATION).\n\n"
           "Args:\n"
           "    query_points: Nx2 numpy array of query coordinates\n"
