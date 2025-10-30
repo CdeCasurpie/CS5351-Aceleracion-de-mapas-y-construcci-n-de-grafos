@@ -262,13 +262,13 @@ py::tuple match_segment(
 
     // Build Segment Delaunay graph from segments
     SDG2 sdg;
-    std::map<pair<Point_sg, Point_sg>, int> segment_index_map;
+    std::map<std::pair<Point_sg, Point_sg>, int> segment_index_map;
 
     // Insert all target segments into the graph
     for (size_t j = 0; j < n_segments; j++) {
         Point_sg p1(segments_ptr[4*j], segments_ptr[4*j + 1]);
         Point_sg p2(segments_ptr[4*j + 2], segments_ptr[4*j + 3]);
-        sdg.insert(p1, p2);
+        sdg.insert(p1, p2);Z
 
         segment_index_map[{p1, p2}] = static_cast<int>(j);
     }
