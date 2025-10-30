@@ -4,11 +4,9 @@
  * This module provides high-performance spatial queries using CGAL
  * (Computational Geometry Algorithms Library). It wraps CGAL's Delaunay
  * triangulation for efficient nearest-neighbor queries.
- * 
- * Based on work by Alejandro.
- * 
+ *  
  * Functions:
- *   - match_cgal: Find nearest point in target set for each query point
+ *   - match_point: Find nearest point in target set for each query point
  *   - assign_to_segments: (PENDING) Find nearest line segment for each point
  */
 
@@ -48,7 +46,7 @@ namespace py = pybind11;
  *          - indices: Array of length N with target indices
  *          - distances: Array of length N with Euclidean distances
  */
-py::tuple match_cgal(
+py::tuple match_point(
     py::array_t<double, py::array::c_style | py::array::forcecast> query_points,
     py::array_t<double, py::array::c_style | py::array::forcecast> target_points
 ) {
@@ -256,7 +254,7 @@ py::tuple assign_to_segments(
 PYBIND11_MODULE(acj_core, m) {
     m.doc() = "ACJ Core - CGAL-based spatial indexing for geospatial analysis";
     
-    m.def("match_cgal", &match_cgal,
+    m.def("match_point", &match_point,
           "Find nearest target point for each query point using CGAL Delaunay triangulation.\n\n"
           "Args:\n"
           "    query_points: Nx2 numpy array of query coordinates\n"

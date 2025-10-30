@@ -70,7 +70,7 @@ class MapIndex:
         
         self._build_endpoint_index()
         point_coords = points_df[['x', 'y']].values.astype(np.float64)
-        indices, distances = self._acj_core.match_cgal(point_coords, self._endpoint_index)
+        indices, distances = self._acj_core.match_point(point_coords, self._endpoint_index)
         
         node_ids = self.graph_data.nodes['node_id'].values
         result = points_df.copy()
