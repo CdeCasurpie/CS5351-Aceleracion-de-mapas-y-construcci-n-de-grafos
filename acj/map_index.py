@@ -23,6 +23,7 @@ class MapIndex:
         """Initialize MapIndex with graph data."""
         self.graph_data = graph_data
         self._endpoint_index = None
+        self._segment_index = None
         self._acj_core = None
         self._adjacency_list = None
         
@@ -62,6 +63,14 @@ class MapIndex:
         node_coords = self.graph_data.nodes[['x', 'y']].values.astype(np.float64)
         self._endpoint_index = node_coords
     
+    def _build_segment_index(self) -> None:
+        """Build the CGAL Segment Delaunay graph index for line segments (edges)."""
+        if self._segment_index is not None:
+            return
+        
+        segment_coords = self.graph_data.segments[['x1', 'y1', 'x2', 'y2']].values.astype(np.float64)
+        self._segment_index = segment_coords
+    
     def assign_to_endpoints(self, points_df: pd.DataFrame) -> pd.DataFrame:
         """Assign points to their nearest graph endpoints (nodes)."""
         required = ['point_id', 'x', 'y']
@@ -75,6 +84,22 @@ class MapIndex:
         node_ids = self.graph_data.nodes['node_id'].values
         result = points_df.copy()
         result['assigned_node_id'] = node_ids[indices]
+        result['distance'] = distances
+        return result
+    
+    def assign_to_segments(self, segments_df: pd.DataFrame) -> pd.DataFrame:
+        """Assign points to their nearest graph line segments (edges)."""
+        required = ['point_id', 'x', 'y']
+        if any(col not in segments_df.columns for col in required):
+            raise ValueError(f"Points DataFrame missing required columns: {required}")
+
+        self._build_segment_index()
+        point_coords = segments_df[['x', 'y']].values.astype(np.float64)
+        indices, distances = self._acj_core.match_segment(point_coords, self._segment_index)
+
+        segment_ids = self.graph_data.segments['segment_id'].values
+        result = segments_df.copy()
+        result['assigned_segment_id'] = segment_ids[indices]
         result['distance'] = distances
         return result
 

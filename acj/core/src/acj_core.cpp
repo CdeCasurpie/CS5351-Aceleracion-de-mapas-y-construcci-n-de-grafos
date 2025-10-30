@@ -6,8 +6,8 @@
  * triangulation for efficient nearest-neighbor queries.
  *  
  * Functions:
- *   - match_point: Find nearest point in target set for each query point
- *   - match_segment: (PENDING) Find nearest line segment for each point
+ *   - match_point:     Find nearest point in target set for each query point
+ *   - match_segment:   Find nearest line segment for each point
  */
 
 #include <cmath>
@@ -23,15 +23,25 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Segment_Delaunay_graph_filtered_traits_2.h>
+#include <CGAL/Segment_Delaunay_graph_2.h>
+
 // CGAL type definitions
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef CGAL::Delaunay_triangulation_2<K>                   DT;
 typedef K::Point_2                                          Point_pt;
 
+typedef CGAL::Simple_cartesian<double>                      CK;
+typedef CGAL::Segment_Delaunay_graph_filtered_traits_2<
+    CK, CGAL::Field_with_sqrt_tag>                          Gt;
+typedef CGAL::Segment_Delaunay_graph_2<Gt>                  SDG2;
+typedef Gt::Point_2                                         Point_sg;
+
 namespace py = pybind11;
 
 
-/**
+/*
  * Find nearest neighbor in target set for each query point using CGAL.
  * 
  * This function builds a Delaunay triangulation from the target points
@@ -107,7 +117,7 @@ py::tuple match_point(
 }
 
 
-/**
+/*
  * Find clusters of points within a given distance threshold using CGAL.
  * 
  * This function uses CGAL's spatial data structures to efficiently find
@@ -211,7 +221,7 @@ py::list find_clusters_cgal(
 }
 
 
-/**
+/*
  * PENDING: Assign points to nearest line segments using AABB tree.
  * 
  * This function will use CGAL's AABB tree to efficiently find the closest
@@ -225,27 +235,82 @@ py::list find_clusters_cgal(
  * @param query_points: Nx2 array of query point coordinates
  * @param segments: Mx4 array of segment endpoints (x1, y1, x2, y2)
  * @return: Tuple of (indices, distances, projections)
- * 
- * Status: NOT IMPLEMENTED
  */
 py::tuple match_segment(
     py::array_t<double, py::array::c_style | py::array::forcecast> query_points,
     py::array_t<double, py::array::c_style | py::array::forcecast> segments
 ) {
-    throw std::runtime_error(
-        "match_segment() is not yet implemented. "
-        "This requires CGAL AABB tree support for line segments."
-    );
-    
-    // PENDING IMPLEMENTATION:
-    // 1. Build AABB tree from segments using CGAL::AABB_tree
-    // 2. For each query point, find closest segment
-    // 3. Compute projection point on segment
-    // 4. Return (segment_indices, distances, projection_points)
+    // Validate input array shapes
+    if (query_points.ndim() != 2 || query_points.shape(1) != 2) {
+        throw std::runtime_error("query_points must be Nx2 array");
+    }
+    if (segments.ndim() != 2 || segments.shape(1) != 4) {
+        throw std::runtime_error("segments must be Mx4 array");
+    }
+
+    size_t n_query = static_cast<size_t>(query_points.shape(0));
+    size_t n_segments = static_cast<size_t>(segments.shape(0));
+
+    // Get raw data pointers for efficient access
+    const double* query_ptr = static_cast<const double*>(query_points.data());
+    const double* segments_ptr = static_cast<const double*>(segments.data());
+
+    // Result containers
+    std::vector<int> indices(n_query);
+    std::vector<double> distances(n_query);
+
+    // Build Segment Delaunay graph from segments
+    SDG2 sdg;
+    std::map<pair<Point_sg, Point_sg>, int> segment_index_map;
+
+    // Insert all target segments into the graph
+    for (size_t j = 0; j < n_segments; j++) {
+        Point_sg p1(segments_ptr[4*j], segments_ptr[4*j + 1]);
+        Point_sg p2(segments_ptr[4*j + 2], segments_ptr[4*j + 3]);
+        sdg.insert(p1, p2);
+
+        segment_index_map[{p1, p2}] = static_cast<int>(j);
+    }
+
+    // Query nearest neighbor for each query point
+    for (size_t i = 0; i < n_query; i++) {
+        Point_sg query(query_ptr[2*i], query_ptr[2*i + 1]);
+
+        // Find nearest segment in graph (O(log M) operation)
+        auto nearest_segment = sdg.nearest_neighbor(query);
+        
+        // Set variables for distance calculation
+        double x1, y1, x2, y2;
+        x1 = nearest_segment->site().source().x();
+        y1 = nearest_segment->site().source().y();
+
+        x2 = nearest_segment->site().target().x();
+        y2 = nearest_segment->site().target().y();
+
+        // Calculate distance from query point to nearest segment
+        double A = y1 - y2;
+        double B = x2 - x1;
+        double C = x1 * y2 - x2 * y1;
+
+        double distance = std::abs(A * query_ptr[2*i] + B * query_ptr[2*i + 1] + C) /
+                          std::sqrt(A * A + B * B);
+        
+        // Retrieve original index from map
+        int target_idx = segment_index_map[{nearest_segment->site().source(), nearest_segment->site().target()}];
+        
+        indices[i] = target_idx;
+        distances[i] = distance;
+    }
+
+    // Convert results to numpy arrays
+    py::array_t<int> result_indices = py::cast(indices);
+    py::array_t<double> result_distances = py::cast(distances);
+
+    return py::make_tuple(result_indices, result_distances);
 }
 
 
-/**
+/*
  * Python module definition for acj_core.
  * 
  * This module is imported by the Python MapIndex class to perform
@@ -277,12 +342,14 @@ PYBIND11_MODULE(acj_core, m) {
           py::arg("threshold"));
     
     m.def("match_segment", &match_segment,
-          "Assign points to nearest line segments (PENDING IMPLEMENTATION).\n\n"
+          "Find nearest line segments for each query point using CGAL Segment Delaunay graph.\n\n"
           "Args:\n"
           "    query_points: Nx2 numpy array of query coordinates\n"
           "    segments: Mx4 numpy array of segment endpoints (x1, y1, x2, y2)\n\n"
           "Returns:\n"
-          "    Tuple of (indices, distances, projections)",
+          "    Tuple of (indices, distances) where:\n"
+          "    - indices[i] is the index in segments of the nearest segment\n"
+          "    - distances[i] is the distance to that segment",
           py::arg("query_points"),
           py::arg("segments"));
 }
