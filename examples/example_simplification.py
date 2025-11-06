@@ -29,7 +29,9 @@ def main():
     print()
     
     # Configuration
-    city_name = "Piedmont, California, USA"
+    #city_name = "Piedmont, California, USA"
+    city_name = "São Paulo, Brazil"
+
     cache_dir = "./cache"
     
     # --- 1. Load Original Graph ---
