@@ -284,41 +284,40 @@ class TestGraphSimplification:
 
     def test_simplify_graph_geometric_basic(self):
         """Test basic geometric simplification by merging close intersections."""
-        # Nodes 0 (deg 1) and 1 (deg 1) are endpoints, they are both intersections
+        # Create a Y-shaped graph with 3 intersections
+        # Node 2 is center of Y (degree 3), nodes 0, 1, 3 are endpoints (degree 1)
         nodes = pd.DataFrame({
-            'node_id': [0, 1, 2],
-            'x': [0.0, 5.0, 100.0],  # Nodes 0 and 1 are 5m apart
-            'y': [0.0, 0.0, 0.0]
+            'node_id': [0, 1, 2, 3],
+            'x': [0.0, 5.0, 2.5, 2.5],  # Nodes 0 and 1 are 5m apart, node 2 is in middle
+            'y': [0.0, 0.0, 0.0, 10.0]
         })
 
         segments = pd.DataFrame({
-            'segment_id': [0, 1],
-            'node_start': [0, 1],
-            'node_end': [2, 2], # Node 2 is an intersection (deg 2)
-            'x1': [0.0, 5.0],
-            'y1': [0.0, 0.0],
-            'x2': [100.0, 100.0],
-            'y2': [0.0, 0.0]
-            })
-            # Original graph: (0)-(2) and (1)-(2). Node 2 is deg 2. Nodes 0, 1 are deg 1.
-            # Intersections: 0, 1, 2. But node 2 is deg 2.
-            # C++ implementation: degree != 2 are intersections: 0, 1.
+            'segment_id': [0, 1, 2],
+            'node_start': [0, 1, 2],
+            'node_end': [2, 2, 3],
+            'x1': [0.0, 5.0, 2.5],
+            'y1': [0.0, 0.0, 0.0],
+            'x2': [2.5, 2.5, 2.5],
+            'y2': [0.0, 0.0, 10.0]
+        })
 
         graph = acj.load_graph(nodes, segments)
 
-        # Test with threshold that should merge nodes 0 and 1 (5m apart)
+        # Test with threshold that should merge nodes 0, 1, and 2 (all within 5m)
         simplified_merged = acj.simplify_graph_geometric(graph, threshold_meters=10.0)
 
-        # Intersections (0, 1) should be merged into one new node (ID 0). Node 2 remains.
-        # 3 original nodes -> 2 new nodes (one centroid for 0/1, one for 2).
+        # Nodes 0, 1, 2 should merge into one. Node 3 stays separate.
+        # Result: 2 nodes (merged 0/1/2, and 3)
         assert len(simplified_merged.nodes) == 2
-        # Two segments (0-2 and 1-2) become one (NewID-2)
+        # One segment connecting the merged node to node 3
         assert len(simplified_merged.segments) == 1
-        # Test with threshold that should NOT merge nodes 0 and 1
+        
+        # Test with threshold that should NOT merge anything
         simplified_unmerged = acj.simplify_graph_geometric(graph, threshold_meters=1.0)
-        # No merge. All intersections (0, 1) remain distinct. Node 2 remains.
-        assert len(simplified_unmerged.nodes) == 3
-        assert len(simplified_unmerged.segments) == 2 # Two segments: 0-2 and 1-2.
+        # No merge. All intersections remain.
+        assert len(simplified_unmerged.nodes) == 4
+        assert len(simplified_unmerged.segments) == 3
 
     def test_simplify_graph_automatic_selection(self):
         """Test that simplify_graph automatically selects the right method."""

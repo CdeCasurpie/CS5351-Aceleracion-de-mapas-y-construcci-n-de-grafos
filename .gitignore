@@ -33,12 +33,13 @@ Thumbs.db
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
+build/Makefile
 *.cmake
 
-# Keep only the main CMakeLists.txt files
+# Keep only the main CMakeLists.txt files and root Makefile
 !CMakeLists.txt
 !acj/core/CMakeLists.txt
+!Makefile
 
 # ACJ specific
 cache/
