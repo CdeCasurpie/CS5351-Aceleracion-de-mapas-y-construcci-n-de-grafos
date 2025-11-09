@@ -232,24 +232,44 @@ class ACJComparator:
             parent=self.view_right.scene
         )
 
-        # On-screen display (OSD) text
+        # On-screen display (OSD) text at bottom
         self.debugger_text_left = visuals.Text("", pos=(15, 15), anchor_x='left', anchor_y='bottom',
                                                color='white', font_size=10, parent=self.canvas.scene)
         self.debugger_text_right = visuals.Text("", pos=(canvas_size[0] - 15, 15),
                                                 anchor_x='right', anchor_y='bottom',
                                                 color='white', font_size=10, parent=self.canvas.scene)
-        self.title_text_left = visuals.Text(title_left, pos=(15, canvas_size[1] - 15),
-                                            anchor_x='left', anchor_y='top', color='white',
-                                            font_size=14, bold=True, parent=self.canvas.scene)
-        self.title_text_right = visuals.Text(title_right, pos=(canvas_size[0] - 15, canvas_size[1] - 15),
-                                             anchor_x='right', anchor_y='top', color='white',
-                                             font_size=14, bold=True, parent=self.canvas.scene)
+        
+        # Large descriptive titles at the top with labels
+        center_left = canvas_size[0] // 4
+        center_right = 3 * canvas_size[0] // 4
+        top_pos = canvas_size[1] - 25
+        
+        # Left side label and title
+        self.label_text_left = visuals.Text("LEFT", pos=(center_left, top_pos + 25),
+                                            anchor_x='center', anchor_y='top', 
+                                            color='#00ff00', font_size=16, bold=True, 
+                                            parent=self.canvas.scene)
+        self.title_text_left = visuals.Text(title_left, pos=(center_left, top_pos),
+                                            anchor_x='center', anchor_y='top', 
+                                            color='white', font_size=16, bold=True, 
+                                            parent=self.canvas.scene)
+        
+        # Right side label and title
+        self.label_text_right = visuals.Text("RIGHT", pos=(center_right, top_pos + 25),
+                                             anchor_x='center', anchor_y='top', 
+                                             color='#ff8800', font_size=16, bold=True, 
+                                             parent=self.canvas.scene)
+        self.title_text_right = visuals.Text(title_right, pos=(center_right, top_pos),
+                                             anchor_x='center', anchor_y='top', 
+                                             color='white', font_size=16, bold=True, 
+                                             parent=self.canvas.scene)
 
         self._set_initial_camera_view()
         self.visibility_state = {'nodes': True, 'segments': True}
 
         # Event bindings
         self.canvas.events.key_press.connect(self._on_key_press)
+        self.canvas.events.resize.connect(self._on_canvas_resize)
         self.view_left.camera.events.transform_change.connect(self._on_camera_change)
         self._update_debugger_text()
 
@@ -292,7 +312,22 @@ class ACJComparator:
             f"Segments: {len(self.render_data_right['segment_connectivity'])}\n"
             f"{common_text}"
         )
-        self.debugger_text_right.pos = (self.canvas.size[0] - 15, 15)
+        
+        # Update positions dynamically based on current canvas size
+        canvas_width = self.canvas.size[0]
+        canvas_height = self.canvas.size[1]
+        
+        self.debugger_text_right.pos = (canvas_width - 15, 15)
+        
+        # Update title positions to stay centered
+        center_left = canvas_width // 4
+        center_right = 3 * canvas_width // 4
+        top_pos = canvas_height - 25
+        
+        self.label_text_left.pos = (center_left, top_pos + 25)
+        self.title_text_left.pos = (center_left, top_pos)
+        self.label_text_right.pos = (center_right, top_pos + 25)
+        self.title_text_right.pos = (center_right, top_pos)
 
     def _on_key_press(self, event):
         """Handle keypress events for toggling or resetting view."""
@@ -310,6 +345,10 @@ class ACJComparator:
 
     def _on_camera_change(self, event):
         """Refresh debug info when camera zoom or pan changes."""
+        self._update_debugger_text()
+    
+    def _on_canvas_resize(self, event):
+        """Update positions when canvas is resized."""
         self._update_debugger_text()
 
     def run(self):
