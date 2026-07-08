@@ -1,11 +1,11 @@
-# ACJ: Urban Graph Acceleration & Simplification Framework
+# geojac: Urban Graph Acceleration & Simplification Framework
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?logo=python&logoColor=white)
 ![C++](https://img.shields.io/badge/C++-17-00599C.svg?logo=c%2B%2B&logoColor=white)
 ![PyPI](https://img.shields.io/pypi/v/geojac.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-**ACJ** is a high-performance hybrid C++/Python framework for the semantic and topological simplification of large-scale urban street networks. It safely decouples topology from semantic metadata (speed limits, road names, etc.) so that both survive massive graph reductions powered by a CGAL-accelerated C++ core.
+**geojac** is a high-performance hybrid C++/Python framework for the semantic and topological simplification of large-scale urban street networks. It safely decouples topology from semantic metadata (speed limits, road names, etc.) so that both survive massive graph reductions powered by a CGAL-accelerated C++ core.
 
 ---
 
@@ -37,7 +37,7 @@ from geojac import CompressionRatioMetric, SemanticSpeedDistortionMetric
 # 1. Fetch a raw street network
 G = ox.graph_from_place("Barranco, Lima, Peru", network_type="drive")
 
-# 2. Parse into the ACJ registry
+# 2. Parse into the geojac registry
 network = UrbanNetwork.from_networkx(G)
 print(network)
 # <UrbanNetwork | Nodes: 312 (Meta: True) | Edges: 847 (Meta: True)>
