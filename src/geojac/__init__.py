@@ -8,7 +8,7 @@ Main Components:
     - MapIndex: Core class for spatial indexing and queries
     - load_graph: Load graph data from pandas DataFrames
     - simplify_graph: Graph simplification utilities
-    
+
 Author: Cèsar, Alejandro, Jerimy.
 """
 
@@ -17,8 +17,11 @@ from .core.network import UrbanNetwork
 from .core.semantics import resolve_semantics
 from .algorithms.map_index import MapIndex
 from .data.io import load_graph, load_map, GraphData, SimplificationResult
-from .algorithms.graph import (simplify_graph, simplify_graph_topological,
-                               simplify_graph_geometric)
+from .algorithms.graph import (
+    simplify_graph,
+    simplify_graph_topological,
+    simplify_graph_geometric,
+)
 from .utils.render import render_graph, render_heatmap, render_comparison
 from .evaluation.base import BaseEvaluator
 from .evaluation.evaluators import ACJTopologicalEvaluator

@@ -1,35 +1,48 @@
 """Shared fixtures for the ACJ test suite (Layers 0-4)."""
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from geojac.core.network import UrbanNetwork
-from geojac.data.io import GraphData, SimplificationResult
+from geojac.data.io import GraphData
 
 
 # ── UrbanNetwork builders ──────────────────────────────────────────────────────
 
-def _make_urban_network(node_rows, edge_rows, *,
-                        node_meta=None, edge_meta=None,
-                        lineage_nodes=None, lineage_edges=None):
+
+def _make_urban_network(
+    node_rows,
+    edge_rows,
+    *,
+    node_meta=None,
+    edge_meta=None,
+    lineage_nodes=None,
+    lineage_edges=None,
+):
     n = UrbanNetwork()
-    n.nodes_df      = pd.DataFrame(node_rows, columns=['node_id', 'x', 'y'])
-    n.edges_df      = pd.DataFrame(edge_rows,  columns=['segment_id', 'node_start', 'node_end'])
-    n.node_metadata = node_meta     or {}
-    n.edge_metadata = edge_meta     or {}
+    n.nodes_df = pd.DataFrame(node_rows, columns=["node_id", "x", "y"])
+    n.edges_df = pd.DataFrame(
+        edge_rows, columns=["segment_id", "node_start", "node_end"]
+    )
+    n.node_metadata = node_meta or {}
+    n.edge_metadata = edge_meta or {}
     n.lineage_nodes = lineage_nodes or {}
     n.lineage_edges = lineage_edges or {}
     return n
 
 
 def _make_graph_data(node_rows, seg_rows):
-    nodes = pd.DataFrame(node_rows, columns=['node_id', 'x', 'y'])
-    segs  = pd.DataFrame(seg_rows,  columns=['segment_id', 'node_start', 'node_end',
-                                              'x1', 'y1', 'x2', 'y2'])
+    nodes = pd.DataFrame(node_rows, columns=["node_id", "x", "y"])
+    segs = pd.DataFrame(
+        seg_rows,
+        columns=["segment_id", "node_start", "node_end", "x1", "y1", "x2", "y2"],
+    )
     return GraphData(nodes, segs)
 
 
 # ── UrbanNetwork fixtures ──────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def empty_network():
@@ -60,11 +73,12 @@ def semantic_chain_network():
     return _make_urban_network(
         [[0, 0.0, 0.0], [1, 10.0, 0.0], [2, 20.0, 0.0], [3, 30.0, 0.0]],
         [[0, 0, 1], [1, 1, 2], [2, 2, 3]],
-        edge_meta={0: {'maxspeed': 50}, 1: {'maxspeed': 60}, 2: {'maxspeed': 70}},
+        edge_meta={0: {"maxspeed": 50}, 1: {"maxspeed": 60}, 2: {"maxspeed": 70}},
     )
 
 
 # ── NumPy array fixtures (Layer 0) ─────────────────────────────────────────────
+
 
 @pytest.fixture
 def chain_nodes_array():
@@ -93,11 +107,14 @@ def empty_segs_array():
 
 # ── GraphData fixtures (Layer 1) ───────────────────────────────────────────────
 
+
 @pytest.fixture
 def chain_graph_data():
     return _make_graph_data(
         [[0, 0.0, 0.0], [1, 10.0, 0.0], [2, 20.0, 0.0], [3, 30.0, 0.0]],
-        [[0, 0, 1, 0.0, 0.0, 10.0, 0.0],
-         [1, 1, 2, 10.0, 0.0, 20.0, 0.0],
-         [2, 2, 3, 20.0, 0.0, 30.0, 0.0]],
+        [
+            [0, 0, 1, 0.0, 0.0, 10.0, 0.0],
+            [1, 1, 2, 10.0, 0.0, 20.0, 0.0],
+            [2, 2, 3, 20.0, 0.0, 30.0, 0.0],
+        ],
     )
