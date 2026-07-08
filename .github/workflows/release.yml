@@ -1,13 +1,9 @@
-name: Build Wheels
+name: CD - Build Wheels & Release
 
 on:
   push:
-    branches:
-      - main
-      - develop
-    tags:
-      - 'v*'
-  pull_request:
+    branches: [ "main" ]
+    tags: [ 'v*' ]
 
 jobs:
   build_wheels:
@@ -17,17 +13,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
-      # cibuildwheel automatically downloads the cibuildwheel docker images for linux
-      # and runs the build process across different python versions.
       - name: Cache vcpkg installed packages
         uses: actions/cache@v4
         if: runner.os == 'Windows'
@@ -37,9 +29,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-vcpkg-
 
-      # Homebrew bottles are compiled against the runner's OS version.
-      # Capture it so cibuildwheel's deployment target matches exactly,
-      # preventing delocate-wheel from rejecting mismatched LC_BUILD_VERSION.
       - name: Detect macOS deployment target
         if: runner.os == 'macOS'
         id: macos-target
@@ -57,7 +46,7 @@ jobs:
           CIBW_BEFORE_ALL_WINDOWS: "vcpkg install boost:x64-windows gmp:x64-windows mpfr:x64-windows"
           CIBW_BEFORE_BUILD_WINDOWS: "pip install delvewheel"
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair --add-path C:\\vcpkg\\installed\\x64-windows\\bin -w {dest_dir} {wheel}"
-          CIBW_SKIP: "cp36-* cp37-* cp38-* pp* *-musllinux_* *i686* *win32*" # Omitir versiones muy viejas o 32 bits
+          CIBW_SKIP: "cp36-* cp37-* cp38-* pp* *-musllinux_* *i686* *win32*"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -79,40 +68,30 @@ jobs:
   benchmark:
     name: Run thesis benchmark
     runs-on: ubuntu-24.04
-    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
-
       - name: Cache OSM network data
         uses: actions/cache@v4
         with:
           path: cache/
           key: osm-cache-barranco-v1
-
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            python3 python3-pip python3-dev \
-            build-essential cmake git pkg-config \
-            pybind11-dev \
-            libboost-all-dev libgmp-dev libmpfr-dev libcgal-dev \
-            libspatialindex-dev libgeos-dev libproj-dev \
-            libgl1 libglib2.0-0
+            python3 python3-pip python3-dev build-essential cmake git pkg-config \
+            pybind11-dev libboost-all-dev libgmp-dev libmpfr-dev libcgal-dev \
+            libspatialindex-dev libgeos-dev libproj-dev libgl1 libglib2.0-0
           pip3 install -r requirements.txt --break-system-packages
-
       - name: Build C++ extension
         run: |
-          mkdir -p build
-          cd build
+          mkdir -p build && cd build
           cmake ..
           make -j$(nproc)
-
       - name: Run benchmark
         env:
           PYTHONPATH: ${{ github.workspace }}/build:${{ github.workspace }}/src
         run: python3 scripts/run_benchmark.py
-
       - name: Upload benchmark outputs
         uses: actions/upload-artifact@v4
         with:
@@ -122,17 +101,15 @@ jobs:
 
   upload_pypi:
     name: Upload to PyPI
-    needs: [build_wheels, build_sdist]
+    needs: [build_wheels, build_sdist, benchmark]
     runs-on: ubuntu-latest
-    # Se ejecutará automáticamente al pushear a main o al crear un Tag
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/download-artifact@v4
         with:
           pattern: cibw-*
           path: dist
           merge-multiple: true
-
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}

@@ -20,11 +20,7 @@ import pandas as pd
 
 
 def generate_random_points(
-    graph_data,
-    n_points=500,
-    seed=42,
-    num_hotspots=60,
-    hotspot_radius=400.0
+    graph_data, n_points=500, seed=42, num_hotspots=60, hotspot_radius=400.0
 ):
     """
     Generates random points in clusters around selected "hotspot" segments.
@@ -49,21 +45,21 @@ def generate_random_points(
 
     segments_df = graph_data.segments
     if len(segments_df) == 0 or num_hotspots == 0 or n_points == 0:
-        return pd.DataFrame({'point_id': [], 'x': [], 'y': [], 'crime_type': []})
+        return pd.DataFrame({"point_id": [], "x": [], "y": [], "crime_type": []})
 
     # 1. Select 'num_hotspots' unique segments to be the centers of our clusters
     # Ensure we don't select more hotspots than available segments
     actual_num_hotspots = min(num_hotspots, len(segments_df))
     hotspot_indices = np.random.choice(
-        segments_df.index,
-        size=actual_num_hotspots,
-        replace=False
+        segments_df.index, size=actual_num_hotspots, replace=False
     )
     hotspot_segments = segments_df.loc[hotspot_indices]
 
     # 2. Assign a random number of points to each hotspot
     # Generate random weights and normalize them to sum to n_points
-    random_weights = np.random.rand(actual_num_hotspots) + 0.1 # Add 0.1 to avoid zero-sized hotspots
+    random_weights = (
+        np.random.rand(actual_num_hotspots) + 0.1
+    )  # Add 0.1 to avoid zero-sized hotspots
     points_per_hotspot = (random_weights / random_weights.sum() * n_points).astype(int)
 
     # Adjust for rounding errors to ensure the sum is exactly n_points
@@ -82,8 +78,8 @@ def generate_random_points(
 
         # Generate base points along the central segment line
         t = np.random.rand(num_points_in_hotspot)
-        base_x = segment['x1'] + t * (segment['x2'] - segment['x1'])
-        base_y = segment['y1'] + t * (segment['y2'] - segment['y1'])
+        base_x = segment["x1"] + t * (segment["x2"] - segment["x1"])
+        base_y = segment["y1"] + t * (segment["y2"] - segment["y1"])
 
         # Add a 2D Gaussian (normal) spread to create a cluster
         offsets = np.random.normal(0, hotspot_radius, size=(num_points_in_hotspot, 2))
@@ -100,18 +96,20 @@ def generate_random_points(
 
     # Generate random crime types for all points
     crime_types = np.random.choice(
-        ['robbery', 'assault', 'theft', 'vandalism', 'burglary'],
-        size=n_points
+        ["robbery", "assault", "theft", "vandalism", "burglary"], size=n_points
     )
 
-    points_df = pd.DataFrame({
-        'point_id': range(n_points),
-        'x': x_coords,
-        'y': y_coords,
-        'crime_type': crime_types
-    })
+    points_df = pd.DataFrame(
+        {
+            "point_id": range(n_points),
+            "x": x_coords,
+            "y": y_coords,
+            "crime_type": crime_types,
+        }
+    )
 
     return points_df
+
 
 def main():
     print("=" * 80)
@@ -135,7 +133,9 @@ def main():
         print("\nTrying alternative city: 'Belluno, Italy'...")
         city_name = "Belluno, Italy"
         try:
-            graph = geojac.load_map(city_name, cache_dir="./cache", network_type="drive")
+            graph = geojac.load_map(
+                city_name, cache_dir="./cache", network_type="drive"
+            )
         except Exception as e2:
             print(f"ERROR: Could not load alternative map: {e2}")
             print("\nPlease check your internet connection and OSMnx installation.")
@@ -146,7 +146,9 @@ def main():
 
     # Step 2: Generate random crime points
     print(f"[2/4] Generating {n_crimes} random crime points...")
-    crimes = generate_random_points(graph, n_points=n_crimes, seed=random.randint(0, 10000))
+    crimes = generate_random_points(
+        graph, n_points=n_crimes, seed=random.randint(0, 10000)
+    )
 
     print(f"Generated {len(crimes)} crime points")
     print(f"Crime types: {crimes['crime_type'].value_counts().to_dict()}")
@@ -157,15 +159,15 @@ def main():
     map_index = geojac.MapIndex(graph)
     assignments = map_index.assign_to_endpoints(crimes)
 
-    avg_distance = assignments['distance'].mean()
-    max_distance = assignments['distance'].max()
-    print(f"Assignment complete!")
+    avg_distance = assignments["distance"].mean()
+    max_distance = assignments["distance"].max()
+    print("Assignment complete!")
     print(f"  Average distance to nearest node: {avg_distance:.2f} meters")
     print(f"  Maximum distance to nearest node: {max_distance:.2f} meters")
     print()
 
     # Show top crime hotspots
-    hotspots = assignments['assigned_node_id'].value_counts().head(5)
+    hotspots = assignments["assigned_node_id"].value_counts().head(5)
     print("Top 5 crime hotspots (node_id: count):")
     for node_id, count in hotspots.items():
         print(f"  Node {node_id}: {count} crimes")
@@ -190,9 +192,7 @@ def main():
     # Launch the real-time visualizer
     # This will block until the window is closed
     geojac.render_heatmap(
-        map_index,
-        assignments,
-        title=f"Crime Heatmap - {city_name} ({n_crimes} crimes)"
+        map_index, assignments, title=f"Crime Heatmap - {city_name} ({n_crimes} crimes)"
     )
 
     print()

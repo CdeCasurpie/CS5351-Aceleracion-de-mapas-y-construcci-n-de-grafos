@@ -10,7 +10,6 @@ import os
 import sys
 import time
 
-import osmnx as ox
 from osmnx import utils_graph
 
 # Ensure the 'geojac' library (built in the build directory) can be imported
@@ -20,7 +19,9 @@ try:
     import geojac
 except ImportError:
     print("Error: Could not import the 'geojac' library.")
-    print("Make sure you have compiled the project first (e.g. 'make example-realtime').")
+    print(
+        "Make sure you have compiled the project first (e.g. 'make example-realtime')."
+    )
     print("This will create the library in the 'build' folder required by this script.")
     sys.exit(1)
 
@@ -40,13 +41,17 @@ def main():
     print(f"[1/5] Loading street network for '{city_name}'...")
     try:
         # Asumimos que geojac.load_map devuelve el grafo MultiDiGraph original
-        graph_original_directed = geojac.load_map(city_name, cache_dir=cache_dir, network_type="drive")
+        graph_original_directed = geojac.load_map(
+            city_name, cache_dir=cache_dir, network_type="drive"
+        )
     except Exception as e:
         print(f"ERROR: Could not load map: {e}")
         print("Please check your internet connection and OSMnx installation.")
         return
 
-    print(f"  Original (Directed): {len(graph_original_directed.nodes)} nodes, {len(graph_original_directed.edges)} edges")
+    print(
+        f"  Original (Directed): {len(graph_original_directed.nodes)} nodes, {len(graph_original_directed.edges)} edges"
+    )
     print()
 
     # --- 2. NEW STEP: Consolidate "Ida y Vuelta" ---
@@ -54,7 +59,9 @@ def main():
     # Esta función convierte el grafo dirigido en un grafo no dirigido,
     # fusionando las aristas de ida y vuelta en una sola.
     graph_original = utils_graph.get_undirected(graph_original_directed)
-    print(f"  Consolidated: {len(graph_original.nodes)} nodes, {len(graph_original.edges)} edges")
+    print(
+        f"  Consolidated: {len(graph_original.nodes)} nodes, {len(graph_original.edges)} edges"
+    )
     print()
 
     # --- 3. Topological Simplification ---
@@ -68,7 +75,11 @@ def main():
     # NOTA: Puede que necesites ajustar cómo cuentas los segmentos si geojac.simplify_...
     # espera una propiedad 'segments'. Usaremos 'edges' (aristas) como un genérico.
     print(f"  Result: {len(graph_topo.nodes)} nodes, {len(graph_topo.edges)} edges")
-    reduction_nodes = (len(graph_original.nodes) - len(graph_topo.nodes)) / len(graph_original.nodes) * 100
+    reduction_nodes = (
+        (len(graph_original.nodes) - len(graph_topo.nodes))
+        / len(graph_original.nodes)
+        * 100
+    )
     print(f"  Reduction: {reduction_nodes:.1f}%")
     print(f"  Time: {topo_time:.3f} seconds")
     print()
@@ -81,7 +92,11 @@ def main():
     geo_time = time.time() - start_time
 
     print(f"  Result: {len(graph_geo.nodes)} nodes, {len(graph_geo.edges)} edges")
-    reduction_nodes_geo = (len(graph_original.nodes) - len(graph_geo.nodes)) / len(graph_original.nodes) * 100
+    reduction_nodes_geo = (
+        (len(graph_original.nodes) - len(graph_geo.nodes))
+        / len(graph_original.nodes)
+        * 100
+    )
     print(f"  Reduction: {reduction_nodes_geo:.1f}%")
     print(f"  Time: {geo_time:.3f} seconds")
     print()
@@ -91,8 +106,12 @@ def main():
     print("SUMMARY")
     print("=" * 80)
     print(f"Original (Consolidated): {len(graph_original.nodes):,} nodes")
-    print(f"Topological:             {len(graph_topo.nodes):,} nodes (preserves intersections)")
-    print(f"Geometric:               {len(graph_geo.nodes):,} nodes (merges close intersections)")
+    print(
+        f"Topological:             {len(graph_topo.nodes):,} nodes (preserves intersections)"
+    )
+    print(
+        f"Geometric:               {len(graph_geo.nodes):,} nodes (merges close intersections)"
+    )
     print()
     print("Use cases:")
     print("  - Topological: Real-time navigation, routing")
@@ -105,7 +124,9 @@ def main():
     # de que 'utils_graph.get_undirected' la preserve correctamente.
     # Si 'segments' es un alias de 'edges', esto debería funcionar.
     print("Launching interactive comparison...")
-    print("Controls: Mouse drag=pan, Mouse wheel=zoom, N=nodes, L=lines, R=reset, Q=quit")
+    print(
+        "Controls: Mouse drag=pan, Mouse wheel=zoom, N=nodes, L=lines, R=reset, Q=quit"
+    )
     print()
 
     index_original = geojac.MapIndex(graph_original)
@@ -115,7 +136,7 @@ def main():
         index_original,
         index_geometric,
         title_left="Original Graph (Consolidated)",
-        title_right="Geometric Simplified (15m threshold)"
+        title_right="Geometric Simplified (15m threshold)",
     )
 
     print("Example complete!")
