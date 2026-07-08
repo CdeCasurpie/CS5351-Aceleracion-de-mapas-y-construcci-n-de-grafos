@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from collections import defaultdict
-from acj.data.io import GraphData, SimplificationResult
+from geojac.data.io import GraphData, SimplificationResult
 
 def simplify_graph_minkowski(graph_data: GraphData, radius: float = 5.0) -> SimplificationResult:
     """Simplifica un grafo usando sumas de Minkowski y Straight Skeleton (CGAL vectorial)."""
@@ -13,7 +13,7 @@ def simplify_graph_minkowski(graph_data: GraphData, radius: float = 5.0) -> Simp
         import os
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         build_root = os.path.join(project_root, 'build')
-        build_core = os.path.join(build_root, 'src', 'acj', 'core')
+        build_core = os.path.join(build_root, 'src', 'geojac', 'core')
         
         for path in [build_root, build_core]:
             if os.path.exists(path) and path not in sys.path:
@@ -86,6 +86,6 @@ def simplify_graph_minkowski(graph_data: GraphData, radius: float = 5.0) -> Simp
             seg_id_counter += 1
 
     minkowski_graph = GraphData(pd.DataFrame(final_nodes), pd.DataFrame(final_segments))
-    from acj.algorithms.graph import simplify_graph_topological
+    from geojac.algorithms.graph import simplify_graph_topological
     return simplify_graph_topological(minkowski_graph)
 

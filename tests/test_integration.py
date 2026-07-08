@@ -5,9 +5,9 @@ import pytest
 
 acj_core = pytest.importorskip("acj_core", reason="acj_core (.so) not built")
 
-from acj.core.network import UrbanNetwork
-from acj.evaluation.evaluators import ACJTopologicalEvaluator
-from acj.evaluation.metrics import CompressionRatioMetric, SemanticSpeedDistortionMetric
+from geojac.core.network import UrbanNetwork
+from geojac.evaluation.evaluators import ACJTopologicalEvaluator
+from geojac.evaluation.metrics import CompressionRatioMetric, SemanticSpeedDistortionMetric
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

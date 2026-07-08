@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-from acj.evaluation.base import BaseEvaluator
-from acj.data.io import SimplificationResult, GraphData
+from geojac.evaluation.base import BaseEvaluator
+from geojac.data.io import SimplificationResult, GraphData
 
 class ACJTopologicalEvaluator(BaseEvaluator):
     def simplify(self) -> SimplificationResult:
@@ -10,7 +10,7 @@ class ACJTopologicalEvaluator(BaseEvaluator):
             import os
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             build_root = os.path.join(project_root, 'build')
-            build_core = os.path.join(build_root, 'src', 'acj', 'core')
+            build_core = os.path.join(build_root, 'src', 'geojac', 'core')
             
             for path in [build_root, build_core]:
                 if os.path.exists(path) and path not in sys.path:

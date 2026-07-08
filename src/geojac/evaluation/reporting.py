@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from acj.core.network import UrbanNetwork
+from geojac.core.network import UrbanNetwork
 
 # ── Colour palette keyed by algorithm display name ────────────────────────────
 _PALETTE = {

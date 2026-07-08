@@ -3,7 +3,7 @@ import networkx as nx
 import pandas as pd
 import pytest
 
-from acj.core.network import UrbanNetwork
+from geojac.core.network import UrbanNetwork
 
 
 class TestUrbanNetworkInit:

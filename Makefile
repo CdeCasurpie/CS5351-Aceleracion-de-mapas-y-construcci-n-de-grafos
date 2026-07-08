@@ -32,42 +32,42 @@ help:
 
 # Build Docker image
 build:
-	docker build -f Dockerfile -t ubuntu-acj:1 --build-arg uid="$(shell id -u)" --build-arg gid="$(shell id -g)" --build-arg user=dockeruser --build-arg group=dockergroup .
+	docker build -f Dockerfile -t ubuntu-geojac:1 --build-arg uid="$(shell id -u)" --build-arg gid="$(shell id -g)" --build-arg user=dockeruser --build-arg group=dockergroup .
 
 # Interactive shells
 shell:
-	docker run -v $(shell pwd):/workspace -w /workspace -it ubuntu-acj:1 /bin/bash
+	docker run -v $(shell pwd):/workspace -w /workspace -it ubuntu-geojac:1 /bin/bash
 
 shell-user:
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -w /workspace -it ubuntu-acj:1 /bin/bash
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -w /workspace -it ubuntu-geojac:1 /bin/bash
 
 # ACJ Library commands (Actualizado para Arquitectura src/)
 test: ## Run ACJ library test suite
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 -m pytest tests/ -v"
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace ubuntu-geojac:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 -m pytest tests/ -v"
 
 example: ## Run basic ACJ library example
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_acj.py"
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace ubuntu-geojac:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_acj.py"
 
 example-realtime: ## Run real-time interactive visualization with VisPy
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_realtime.py"
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-geojac:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_realtime.py"
 
 example-simplification: ## Run graph simplification comparison
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_simplification.py"
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-geojac:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_simplification.py"
 
 example-simplification-visual: ## Run visual graph simplification demo with interactive comparison
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_simplification_visual.py"
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-geojac:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_simplification_visual.py"
 
 example-crime: ## Run crime heatmap visualization demo with interactive comparison
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_crime_visualization.py"
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-geojac:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_crime_visualization.py"
 
 example-crime-osm: ## Run crime heatmap with real OSM data (configurable location)
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_crime_osm.py"
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-geojac:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_crime_osm.py"
 
 example-simplification-osm: ## Run simplification comparison with real OSM data (configurable location)
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_simplification_osm.py"
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-geojac:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_simplification_osm.py"
 
 example-minkowski-osm: ## Run Minkowski simplification with real OSM data (configurable location)
-	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-acj:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_minkowski_osm.py"
+	docker run --user $(shell id -u):$(shell id -g) -v $(shell pwd):/workspace -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY ubuntu-geojac:1 sh -c "cd /workspace && mkdir -p build && cd build && cmake .. && make -j\$$(nproc) && cd .. && PYTHONPATH=/workspace/build:/workspace/src python3 examples/example_minkowski_osm.py"
 
 
 # Cleanup
@@ -76,4 +76,4 @@ clean: ## Clean build artifacts
 
 clean-all: ## Clean everything including Docker cache
 	rm -rf build/ cache/ output/
-	docker rmi ubuntu-acj:1 || true
+	docker rmi ubuntu-geojac:1 || true

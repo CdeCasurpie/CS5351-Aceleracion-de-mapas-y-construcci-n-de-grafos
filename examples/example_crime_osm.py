@@ -18,7 +18,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'build'))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import acj
+import geojac
 import pandas as pd
 import numpy as np
 
@@ -146,7 +146,7 @@ def main():
     
     start_time = time.time()
     try:
-        graph = acj.load_map(CITY_NAME, cache_dir=cache_dir, network_type="drive")
+        graph = geojac.load_map(CITY_NAME, cache_dir=cache_dir, network_type="drive")
         load_time = time.time() - start_time
         print(f"      ✓ Network loaded successfully in {load_time:.2f} seconds")
         print(f"      Nodes: {len(graph.nodes)}")
@@ -161,7 +161,7 @@ def main():
     # Step 2: Build spatial index
     print(f"[2/5] Building spatial index with CGAL Delaunay triangulation...")
     start_time = time.time()
-    map_index = acj.MapIndex(graph)
+    map_index = geojac.MapIndex(graph)
     index_time = time.time() - start_time
     print(f"      ✓ Spatial index built in {index_time:.2f} seconds")
     print()
@@ -223,14 +223,14 @@ def main():
     print("=" * 80)
     
     # Create visualization
-    map_index_plain = acj.MapIndex(graph)
+    map_index_plain = geojac.MapIndex(graph)
     
     # Get statistics for titles
     crime_counts = assignments['assigned_node_id'].value_counts()
     max_crimes = crime_counts.max()
     active_nodes = len(crime_counts)
     
-    acj.render_comparison(
+    geojac.render_comparison(
         map_index_plain,
         map_index,
         assignments_right=assignments,

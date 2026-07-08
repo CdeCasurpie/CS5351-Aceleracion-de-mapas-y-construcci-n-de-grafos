@@ -107,7 +107,7 @@ def load_graph(nodes_df: pd.DataFrame, segments_df: pd.DataFrame) -> GraphData:
         ...     'x2': [100.0, 200.0],
         ...     'y2': [0.0, 100.0]
         ... })
-        >>> graph = acj.load_graph(nodes, segments)
+        >>> graph = geojac.load_graph(nodes, segments)
     """
     return GraphData(nodes_df, segments_df)
 
@@ -133,7 +133,7 @@ def load_map(city_name: str, cache_dir: str = "./cache", network_type: str = "dr
         ValueError: If city cannot be found
     
     Example:
-        >>> graph = acj.load_map("Cholula, Puebla, Mexico")
+        >>> graph = geojac.load_map("Cholula, Puebla, Mexico")
         >>> print(f"Loaded {len(graph.nodes)} nodes and {len(graph.segments)} segments")
     """
     try:

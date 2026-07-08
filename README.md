@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?logo=python&logoColor=white)
 ![C++](https://img.shields.io/badge/C++-17-00599C.svg?logo=c%2B%2B&logoColor=white)
-![PyPI](https://img.shields.io/pypi/v/acj.svg)
+![PyPI](https://img.shields.io/pypi/v/geojac.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 **ACJ** is a high-performance hybrid C++/Python framework for the semantic and topological simplification of large-scale urban street networks. It safely decouples topology from semantic metadata (speed limits, road names, etc.) so that both survive massive graph reductions powered by a CGAL-accelerated C++ core.
@@ -14,13 +14,13 @@
 ACJ is published on PyPI and ships with pre-compiled wheels for Linux, macOS (Apple Silicon & Intel), and Windows. No C++ compilation required.
 
 ```bash
-pip install acj
+pip install geojac
 ```
 
 For GPU-accelerated real-time visualization, install the optional extras:
 
 ```bash
-pip install "acj[viz]"
+pip install "geojac[viz]"
 ```
 
 > We recommend working inside a virtual environment: `python -m venv venv && source venv/bin/activate`
@@ -31,8 +31,8 @@ pip install "acj[viz]"
 
 ```python
 import osmnx as ox
-from acj import UrbanNetwork, ACJTopologicalEvaluator
-from acj import CompressionRatioMetric, SemanticSpeedDistortionMetric
+from geojac import UrbanNetwork, ACJTopologicalEvaluator
+from geojac import CompressionRatioMetric, SemanticSpeedDistortionMetric
 
 # 1. Fetch a raw street network
 G = ox.graph_from_place("Barranco, Lima, Peru", network_type="drive")
@@ -60,7 +60,7 @@ print(evaluator.simplified_network)
 The central data structure. Stores topology in Pandas DataFrames and semantic attributes in dictionaries, keeping them decoupled for safe C++ operations.
 
 ```python
-from acj import UrbanNetwork
+from geojac import UrbanNetwork
 
 # From an OSMnx / NetworkX graph
 network = UrbanNetwork.from_networkx(G)
@@ -87,7 +87,7 @@ network = UrbanNetwork.from_dataframe(nodes_df, edges_df)
 CGAL-backed spatial index for fast nearest-neighbor point-to-graph assignment. Useful for correlating events (e.g., crime incidents) with street segments or intersections.
 
 ```python
-from acj import MapIndex, load_graph
+from geojac import MapIndex, load_graph
 import pandas as pd
 
 graph_data = load_graph(nodes_df, edges_df)
@@ -110,7 +110,7 @@ segment_assignments = index.assign_to_segments(points)
 Automates the full pipeline: injects the network into the C++ core, receives the simplified topology with lineage maps, runs semantic resolution, and applies metrics.
 
 ```python
-from acj import ACJTopologicalEvaluator, CompressionRatioMetric, SemanticSpeedDistortionMetric
+from geojac import ACJTopologicalEvaluator, CompressionRatioMetric, SemanticSpeedDistortionMetric
 
 evaluator = ACJTopologicalEvaluator(network, metrics=[
     CompressionRatioMetric(),
@@ -132,11 +132,11 @@ simplified = evaluator.simplified_network  # UrbanNetwork
 
 ### Visualization (optional `viz` extra)
 
-GPU-accelerated interactive tools built on VisPy/OpenGL. Requires `pip install "acj[viz]"`.
+GPU-accelerated interactive tools built on VisPy/OpenGL. Requires `pip install "geojac[viz]"`.
 
 ```python
-from acj import MapIndex, load_graph
-from acj import render_graph, render_heatmap, render_comparison
+from geojac import MapIndex, load_graph
+from geojac import render_graph, render_heatmap, render_comparison
 
 graph_data = load_graph(nodes_df, edges_df)
 index = MapIndex(graph_data)
@@ -169,7 +169,7 @@ render_comparison(
 ### `load_graph` / `load_map` — Data IO
 
 ```python
-from acj import load_graph, load_map
+from geojac import load_graph, load_map
 
 # Build a GraphData object from DataFrames (required input for MapIndex)
 graph_data = load_graph(nodes_df, edges_df)

@@ -1,7 +1,7 @@
-"""Layer 3: Python simplification API wrappers (acj.simplify_graph_* via pandas I/O)."""
+"""Layer 3: Python simplification API wrappers (geojac.simplify_graph_* via pandas I/O)."""
 import pandas as pd
 import pytest
-import acj
+import geojac
 
 
 def _nodes(*rows):
@@ -19,8 +19,8 @@ class TestTopologicalSimplificationAPI:
         segs  = _segs([0, 0, 1, 0.0, 0.0, 10.0, 0.0],
                       [1, 1, 2, 10.0, 0.0, 20.0, 0.0],
                       [2, 2, 3, 20.0, 0.0, 30.0, 0.0])
-        graph = acj.load_graph(nodes, segs)
-        simplified = acj.simplify_graph_topological(graph)
+        graph = geojac.load_graph(nodes, segs)
+        simplified = geojac.simplify_graph_topological(graph)
         assert len(simplified.graph.nodes) == 2
         assert len(simplified.graph.segments) == 1
 
@@ -31,8 +31,8 @@ class TestTopologicalSimplificationAPI:
                       [1, 1, 2, 10.0, 0.0, 20.0, 0.0],
                       [2, 1, 3, 10.0, 0.0, 10.0, 10.0],
                       [3, 1, 4, 10.0, 0.0, 10.0, -10.0])
-        graph = acj.load_graph(nodes, segs)
-        simplified = acj.simplify_graph_topological(graph)
+        graph = geojac.load_graph(nodes, segs)
+        simplified = geojac.simplify_graph_topological(graph)
         assert len(simplified.graph.nodes) == 5
 
     def test_geometric_nearby_intersections_merge_to_centroid(self):
@@ -40,8 +40,8 @@ class TestTopologicalSimplificationAPI:
         segs  = _segs([0, 0, 2, 0.0, 0.0, 2.5, 0.0],
                       [1, 1, 2, 5.0, 0.0, 2.5, 0.0],
                       [2, 2, 3, 2.5, 0.0, 2.5, 10.0])
-        graph = acj.load_graph(nodes, segs)
-        simplified = acj.simplify_graph_geometric(graph, threshold_meters=10.0)
+        graph = geojac.load_graph(nodes, segs)
+        simplified = geojac.simplify_graph_geometric(graph, threshold_meters=10.0)
         assert len(simplified.graph.nodes) == 2
         assert len(simplified.graph.segments) == 1
 
@@ -51,8 +51,8 @@ class TestMinkowskiSimplificationAPI:
         nodes = pd.DataFrame(columns=['node_id', 'x', 'y'])
         segs  = pd.DataFrame(columns=['segment_id', 'node_start', 'node_end',
                                       'x1', 'y1', 'x2', 'y2'])
-        graph = acj.load_graph(nodes, segs)
-        simplified = acj.simplify_graph(graph, method='minkowski')
+        graph = geojac.load_graph(nodes, segs)
+        simplified = geojac.simplify_graph(graph, method='minkowski')
         assert len(simplified.graph.nodes) == 0
         assert len(simplified.graph.segments) == 0
 
@@ -61,8 +61,8 @@ class TestMinkowskiSimplificationAPI:
                        [2, 0.0, 4.0], [3, 100.0, 4.0])
         segs  = _segs([0, 0, 1, 0.0, 0.0, 100.0, 0.0],
                       [1, 2, 3, 0.0, 4.0, 100.0, 4.0])
-        graph = acj.load_graph(nodes, segs)
-        simplified = acj.simplify_graph(graph, threshold_meters=5.0, method='minkowski')
+        graph = geojac.load_graph(nodes, segs)
+        simplified = geojac.simplify_graph(graph, threshold_meters=5.0, method='minkowski')
         assert len(simplified.graph.segments) == 1
         assert len(simplified.graph.nodes) == 2
 
@@ -71,7 +71,7 @@ class TestMinkowskiSimplificationAPI:
                        [2, 0.0, 50.0], [3, 100.0, 50.0])
         segs  = _segs([0, 0, 1, 0.0, 0.0, 100.0, 0.0],
                       [1, 2, 3, 0.0, 50.0, 100.0, 50.0])
-        graph = acj.load_graph(nodes, segs)
-        simplified = acj.simplify_graph(graph, threshold_meters=5.0, method='minkowski')
+        graph = geojac.load_graph(nodes, segs)
+        simplified = geojac.simplify_graph(graph, threshold_meters=5.0, method='minkowski')
         assert len(simplified.graph.segments) == 2
         assert len(simplified.graph.nodes) == 4

@@ -8,7 +8,7 @@ on graph data using CGAL-based spatial indexing structures.
 import pandas as pd
 import numpy as np
 from typing import Tuple, Dict
-from acj.data.io import GraphData
+from geojac.data.io import GraphData
 
 
 class MapIndex:
@@ -33,7 +33,7 @@ class MapIndex:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             
             build_root = os.path.join(project_root, 'build')
-            build_core = os.path.join(build_root, 'src', 'acj', 'core')
+            build_core = os.path.join(build_root, 'src', 'geojac', 'core')
             
             for path in [build_root, build_core]:
                 if os.path.exists(path) and path not in sys.path:

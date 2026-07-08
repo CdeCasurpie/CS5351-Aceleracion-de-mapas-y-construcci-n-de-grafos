@@ -14,7 +14,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import acj
+import geojac
 import numpy as np
 import pandas as pd
 
@@ -129,13 +129,13 @@ def main():
     print()
 
     try:
-        graph = acj.load_map(city_name, cache_dir="./cache", network_type="drive")
+        graph = geojac.load_map(city_name, cache_dir="./cache", network_type="drive")
     except Exception as e:
         print(f"ERROR: Could not load map: {e}")
         print("\nTrying alternative city: 'Belluno, Italy'...")
         city_name = "Belluno, Italy"
         try:
-            graph = acj.load_map(city_name, cache_dir="./cache", network_type="drive")
+            graph = geojac.load_map(city_name, cache_dir="./cache", network_type="drive")
         except Exception as e2:
             print(f"ERROR: Could not load alternative map: {e2}")
             print("\nPlease check your internet connection and OSMnx installation.")
@@ -154,7 +154,7 @@ def main():
 
     # Step 3: Create spatial index and assign crimes
     print("[3/4] Building spatial index and assigning crimes...")
-    map_index = acj.MapIndex(graph)
+    map_index = geojac.MapIndex(graph)
     assignments = map_index.assign_to_endpoints(crimes)
 
     avg_distance = assignments['distance'].mean()
@@ -189,7 +189,7 @@ def main():
 
     # Launch the real-time visualizer
     # This will block until the window is closed
-    acj.render_heatmap(
+    geojac.render_heatmap(
         map_index,
         assignments,
         title=f"Crime Heatmap - {city_name} ({n_crimes} crimes)"

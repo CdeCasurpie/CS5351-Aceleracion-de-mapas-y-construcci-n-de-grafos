@@ -1,6 +1,6 @@
 import pandas as pd
-from acj.core.network import UrbanNetwork
-from acj.data.io import SimplificationResult
+from geojac.core.network import UrbanNetwork
+from geojac.data.io import SimplificationResult
 
 def resolve_semantics(original: UrbanNetwork, result: SimplificationResult) -> UrbanNetwork:
     resolved = UrbanNetwork()

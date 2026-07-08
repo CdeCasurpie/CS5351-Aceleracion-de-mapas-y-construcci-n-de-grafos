@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 import networkx as nx
-from acj import UrbanNetwork
+from geojac import UrbanNetwork
 
 def test_from_dataframe():
     nodes_data = {

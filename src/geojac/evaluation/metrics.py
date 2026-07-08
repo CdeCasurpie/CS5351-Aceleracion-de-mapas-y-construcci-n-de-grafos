@@ -6,7 +6,7 @@ from typing import Dict
 import networkx as nx
 import numpy as np
 
-from acj.core.network import UrbanNetwork
+from geojac.core.network import UrbanNetwork
 
 
 def _nn_query(ref_xy: np.ndarray, query_xy: np.ndarray):

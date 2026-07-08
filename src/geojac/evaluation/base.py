@@ -1,9 +1,9 @@
 import abc
 from typing import List, Dict
-from acj.core.network import UrbanNetwork
-from acj.data.io import SimplificationResult
-from acj.core.semantics import resolve_semantics
-from acj.evaluation.metrics import Metric
+from geojac.core.network import UrbanNetwork
+from geojac.data.io import SimplificationResult
+from geojac.core.semantics import resolve_semantics
+from geojac.evaluation.metrics import Metric
 
 class BaseEvaluator(abc.ABC):
     def __init__(self, original_network: UrbanNetwork, metrics: List[Metric]):

@@ -18,7 +18,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'build'))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import acj
+import geojac
 import pandas as pd
 from collections import defaultdict
 
@@ -80,7 +80,7 @@ def main():
     
     start_time = time.time()
     try:
-        graph_original = acj.load_map(CITY_NAME, cache_dir=cache_dir, network_type="drive")
+        graph_original = geojac.load_map(CITY_NAME, cache_dir=cache_dir, network_type="drive")
         load_time = time.time() - start_time
         print(f"      ✓ Network loaded successfully in {load_time:.2f} seconds")
     except Exception as e:
@@ -96,7 +96,7 @@ def main():
     print(f"      Algorithm: Remove degree-2 nodes (intermediate nodes on paths)")
     
     start_time = time.time()
-    graph_topo = acj.simplify_graph_topological(graph_original)
+    graph_topo = geojac.simplify_graph_topological(graph_original)
     topo_time = time.time() - start_time
     
     print(f"      ✓ Topological simplification completed in {topo_time:.2f} seconds")
@@ -117,7 +117,7 @@ def main():
     print(f"      Algorithm: Merge nodes within {GEOMETRIC_THRESHOLD_METERS}m using CGAL clustering")
     
     start_time = time.time()
-    graph_geo = acj.simplify_graph_geometric(graph_original, threshold_meters=GEOMETRIC_THRESHOLD_METERS)
+    graph_geo = geojac.simplify_graph_geometric(graph_original, threshold_meters=GEOMETRIC_THRESHOLD_METERS)
     geo_time = time.time() - start_time
     
     print(f"      ✓ Geometric simplification completed in {geo_time:.2f} seconds")
@@ -163,10 +163,10 @@ def main():
     print("Close the window to see the next comparison...")
     print("=" * 80)
     
-    index_original = acj.MapIndex(graph_original)
-    index_topo = acj.MapIndex(graph_topo)
+    index_original = geojac.MapIndex(graph_original)
+    index_topo = geojac.MapIndex(graph_topo)
     
-    acj.render_comparison(
+    geojac.render_comparison(
         index_original,
         index_topo,
         title=f"Graph Simplification - {CITY_NAME}",
@@ -199,9 +199,9 @@ def main():
     print("Close the window to finish...")
     print("=" * 80)
     
-    index_geo = acj.MapIndex(graph_geo)
+    index_geo = geojac.MapIndex(graph_geo)
     
-    acj.render_comparison(
+    geojac.render_comparison(
         index_topo,
         index_geo,
         title=f"Graph Simplification - {CITY_NAME}",

@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from acj.core.network import UrbanNetwork
-from acj.data.io import GraphData, SimplificationResult
+from geojac.core.network import UrbanNetwork
+from geojac.data.io import GraphData, SimplificationResult
 
 
 # ── UrbanNetwork builders ──────────────────────────────────────────────────────

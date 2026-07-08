@@ -77,4 +77,4 @@ else()
 endif()
 
 add_compile_definitions(CGAL_DO_NOT_USE_BOOST_MP)
-add_subdirectory(src/acj/core)
+add_subdirectory(src/geojac/core)

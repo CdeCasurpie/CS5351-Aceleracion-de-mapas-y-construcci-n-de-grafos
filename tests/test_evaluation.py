@@ -4,9 +4,9 @@ import pandas as pd
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from acj.core.network import UrbanNetwork
-from acj.evaluation.metrics import CompressionRatioMetric, SemanticSpeedDistortionMetric
-from acj.evaluation.evaluators import ACJTopologicalEvaluator
+from geojac.core.network import UrbanNetwork
+from geojac.evaluation.metrics import CompressionRatioMetric, SemanticSpeedDistortionMetric
+from geojac.evaluation.evaluators import ACJTopologicalEvaluator
 
 def test_evaluator_and_metrics():
     original = UrbanNetwork()

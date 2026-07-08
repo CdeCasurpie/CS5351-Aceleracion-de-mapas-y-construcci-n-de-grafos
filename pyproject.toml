@@ -3,8 +3,8 @@ requires = ["scikit-build-core>=0.5.0", "pybind11"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "acj"
-version = "0.1.4"
+name = "geojac"
+version = "0.2.2"
 description = "Simplificacion de grafos urbanos y analisis de criminalidad"
 readme = "README.md"
 authors = [{ name="ACJ Team", email="acj-team@utec.edu.pe" }]
@@ -26,7 +26,7 @@ test = ["pytest"]
 where = ["src"]
 
 [tool.scikit-build]
-wheel.packages = ["src/acj"]
+wheel.packages = ["src/geojac"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "build"]

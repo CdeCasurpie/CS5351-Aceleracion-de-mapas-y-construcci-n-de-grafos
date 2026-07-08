@@ -13,13 +13,13 @@ import time
 import osmnx as ox
 from osmnx import utils_graph
 
-# Ensure the 'acj' library (built in the build directory) can be imported
+# Ensure the 'geojac' library (built in the build directory) can be imported
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 try:
-    import acj
+    import geojac
 except ImportError:
-    print("Error: Could not import the 'acj' library.")
+    print("Error: Could not import the 'geojac' library.")
     print("Make sure you have compiled the project first (e.g. 'make example-realtime').")
     print("This will create the library in the 'build' folder required by this script.")
     sys.exit(1)
@@ -39,8 +39,8 @@ def main():
     # --- 1. Load Original Graph (as MultiDiGraph) ---
     print(f"[1/5] Loading street network for '{city_name}'...")
     try:
-        # Asumimos que acj.load_map devuelve el grafo MultiDiGraph original
-        graph_original_directed = acj.load_map(city_name, cache_dir=cache_dir, network_type="drive")
+        # Asumimos que geojac.load_map devuelve el grafo MultiDiGraph original
+        graph_original_directed = geojac.load_map(city_name, cache_dir=cache_dir, network_type="drive")
     except Exception as e:
         print(f"ERROR: Could not load map: {e}")
         print("Please check your internet connection and OSMnx installation.")
@@ -62,10 +62,10 @@ def main():
     print("[3/5] Topological simplification (preserves topology)...")
     start_time = time.time()
     # Esta función ahora simplificará el grafo consolidado
-    graph_topo = acj.simplify_graph_topological(graph_original)
+    graph_topo = geojac.simplify_graph_topological(graph_original)
     topo_time = time.time() - start_time
 
-    # NOTA: Puede que necesites ajustar cómo cuentas los segmentos si acj.simplify_...
+    # NOTA: Puede que necesites ajustar cómo cuentas los segmentos si geojac.simplify_...
     # espera una propiedad 'segments'. Usaremos 'edges' (aristas) como un genérico.
     print(f"  Result: {len(graph_topo.nodes)} nodes, {len(graph_topo.edges)} edges")
     reduction_nodes = (len(graph_original.nodes) - len(graph_topo.nodes)) / len(graph_original.nodes) * 100
@@ -77,7 +77,7 @@ def main():
     print("[4/5] Geometric simplification (CGAL clustering)...")
     start_time = time.time()
     # La simplificación geométrica también se basa en el grafo consolidado
-    graph_geo = acj.simplify_graph_geometric(graph_original, threshold_meters=15.0)
+    graph_geo = geojac.simplify_graph_geometric(graph_original, threshold_meters=15.0)
     geo_time = time.time() - start_time
 
     print(f"  Result: {len(graph_geo.nodes)} nodes, {len(graph_geo.edges)} edges")
@@ -100,7 +100,7 @@ def main():
     print("=" * 80)
 
     # --- 6. Interactive Visualization ---
-    # Es posible que acj.MapIndex o acj.render_comparison esperen propiedades
+    # Es posible que geojac.MapIndex o geojac.render_comparison esperen propiedades
     # específicas. Si 'segments' era una propiedad de tu grafo, asegúrate
     # de que 'utils_graph.get_undirected' la preserve correctamente.
     # Si 'segments' es un alias de 'edges', esto debería funcionar.
@@ -108,10 +108,10 @@ def main():
     print("Controls: Mouse drag=pan, Mouse wheel=zoom, N=nodes, L=lines, R=reset, Q=quit")
     print()
 
-    index_original = acj.MapIndex(graph_original)
-    index_geometric = acj.MapIndex(graph_geo)
+    index_original = geojac.MapIndex(graph_original)
+    index_geometric = geojac.MapIndex(graph_geo)
 
-    acj.render_comparison(
+    geojac.render_comparison(
         index_original,
         index_geometric,
         title_left="Original Graph (Consolidated)",

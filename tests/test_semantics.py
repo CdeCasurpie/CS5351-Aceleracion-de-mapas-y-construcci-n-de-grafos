@@ -4,9 +4,9 @@ import pandas as pd
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from acj.core.network import UrbanNetwork
-from acj.data.io import SimplificationResult, GraphData
-from acj.core.semantics import resolve_semantics
+from geojac.core.network import UrbanNetwork
+from geojac.data.io import SimplificationResult, GraphData
+from geojac.core.semantics import resolve_semantics
 
 def test_resolve_semantics():
     original = UrbanNetwork()

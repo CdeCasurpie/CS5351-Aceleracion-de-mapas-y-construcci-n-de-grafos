@@ -17,7 +17,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'build'))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import acj
+import geojac
 import pandas as pd
 
 CITY_NAME = "Barranco, Lima, Peru"
@@ -37,7 +37,7 @@ def main():
     print(f"[1/3] Loading street network from OpenStreetMap...")
     start_time = time.time()
     try:
-        graph_original = acj.load_map(CITY_NAME, cache_dir=cache_dir, network_type="drive")
+        graph_original = geojac.load_map(CITY_NAME, cache_dir=cache_dir, network_type="drive")
         load_time = time.time() - start_time
         print(f"      ✓ Network loaded successfully in {load_time:.2f} seconds")
         print(f"      Original Nodes: {len(graph_original.nodes):,}")
@@ -52,7 +52,7 @@ def main():
     print(f"      Algorithm: Minkowski Sum (Buffer) + Straight Skeleton + Smart Pruning")
     
     start_time = time.time()
-    graph_simplified = acj.simplify_graph(graph_original, threshold_meters=RADIUS_METERS, method='guided_minkowski')
+    graph_simplified = geojac.simplify_graph(graph_original, threshold_meters=RADIUS_METERS, method='guided_minkowski')
     simp_time = time.time() - start_time
     
     print(f"      ✓ Simplification completed in {simp_time:.4f} seconds")
@@ -72,10 +72,10 @@ def main():
     print(f"  • Uses exact C++ computational geometry (no pixelation errors).")
     print()
     
-    index_original = acj.MapIndex(graph_original)
-    index_simplified = acj.MapIndex(graph_simplified)
+    index_original = geojac.MapIndex(graph_original)
+    index_simplified = geojac.MapIndex(graph_simplified)
     
-    acj.render_comparison(
+    geojac.render_comparison(
         map_index_left=index_original,
         map_index_right=index_simplified,
         title=f"ACJ Minkowski Comparison - {CITY_NAME}",

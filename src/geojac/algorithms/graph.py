@@ -9,8 +9,8 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict, deque
 from typing import Dict, List, Tuple, Set
-from acj.data.io import GraphData, SimplificationResult
-from acj.algorithms.minkowski import simplify_graph_minkowski
+from geojac.data.io import GraphData, SimplificationResult
+from geojac.algorithms.minkowski import simplify_graph_minkowski
 
 def simplify_graph_topological(graph_data: GraphData) -> SimplificationResult:
     """
@@ -25,7 +25,7 @@ def simplify_graph_topological(graph_data: GraphData) -> SimplificationResult:
         GraphData object with simplified graph (only intersections remain)
     
     Example:
-        >>> graph = acj.load_graph(nodes_df, segments_df)
+        >>> graph = geojac.load_graph(nodes_df, segments_df)
         topo_simplified = simplify_graph_topological(graph_data).graph
         >>> print(f"Reduced from {len(graph.nodes)} to {len(simplified.nodes)} nodes")
     
@@ -142,8 +142,8 @@ def simplify_graph_geometric(graph_data: GraphData, threshold_meters: float = 10
         GraphData object with geometrically simplified graph
     
     Example:
-        >>> graph = acj.load_graph(nodes_df, segments_df)
-        >>> simplified = acj.simplify_graph_geometric(graph, threshold_meters=15.0)
+        >>> graph = geojac.load_graph(nodes_df, segments_df)
+        >>> simplified = geojac.simplify_graph_geometric(graph, threshold_meters=15.0)
     
     Notes:
         - More aggressive simplification than topological
@@ -267,7 +267,7 @@ def _find_node_clusters(coords: np.ndarray, threshold: float) -> List[List[int]]
         import os
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         build_root = os.path.join(project_root, 'build')
-        build_core = os.path.join(build_root, 'src', 'acj', 'core')
+        build_core = os.path.join(build_root, 'src', 'geojac', 'core')
         
         for path in [build_root, build_core]:
             if os.path.exists(path) and path not in sys.path:
@@ -308,8 +308,8 @@ def simplify_graph_parallel_cgal(nodes_df: pd.DataFrame, segments_df: pd.DataFra
         GraphData object with simplified graph
     
     Example:
-        >>> graph = acj.load_graph(nodes_df, segments_df)
-        >>> simplified = acj.simplify_graph_parallel_cgal(
+        >>> graph = geojac.load_graph(nodes_df, segments_df)
+        >>> simplified = geojac.simplify_graph_parallel_cgal(
         ...     graph.nodes, graph.segments,
         ...     distance_threshold=10.0, angle_threshold_deg=5.0
         ... )

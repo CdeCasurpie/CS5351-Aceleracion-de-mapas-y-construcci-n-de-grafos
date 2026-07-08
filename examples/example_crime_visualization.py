@@ -14,7 +14,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'build'))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import acj
+import geojac
 import pandas as pd
 import numpy as np
 
@@ -149,13 +149,13 @@ def main():
     # Create sample network
     print("[1/4] Creating sample 5x5 grid network...")
     nodes, segments = create_sample_network()
-    graph = acj.load_graph(nodes, segments)
+    graph = geojac.load_graph(nodes, segments)
     print(f"  Created network with {len(nodes)} nodes and {len(segments)} segments")
     print()
     
     # Create MapIndex for spatial queries
     print("[2/4] Building spatial index...")
-    map_index = acj.MapIndex(graph)
+    map_index = geojac.MapIndex(graph)
     print("  Spatial index built successfully (using CGAL Delaunay triangulation)")
     print()
     
@@ -218,11 +218,11 @@ def main():
     print("=" * 80)
     
     # Create map index without crimes (for left side)
-    map_index_plain = acj.MapIndex(graph)
+    map_index_plain = geojac.MapIndex(graph)
     
     # Create map index with crimes (for right side)
     # The render_comparison will use get_render_data to show the heatmap
-    acj.render_comparison(
+    geojac.render_comparison(
         map_index_plain,
         map_index,
         assignments_right=assignments,

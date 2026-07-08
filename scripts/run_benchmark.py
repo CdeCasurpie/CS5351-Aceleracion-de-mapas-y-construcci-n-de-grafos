@@ -22,8 +22,8 @@ for _p in [os.path.join(_ROOT, "src"), os.path.join(_ROOT, "build")]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from acj.core.network import UrbanNetwork
-from acj.evaluation.metrics import (
+from geojac.core.network import UrbanNetwork
+from geojac.evaluation.metrics import (
     # descriptive
     NodeCountMetric, EdgeCountMetric, TotalCoordinatesMetric,
     TotalLengthKmMetric, AvgDegreeMetric, AvgSinuosityMetric,
@@ -33,7 +33,7 @@ from acj.evaluation.metrics import (
     PathErrorMedianMetric, PathErrorP95Metric,
     PathRatioMedianMetric, PathRatioP95Metric,
 )
-from acj.evaluation.reporting import ThesisReportGenerator
+from geojac.evaluation.reporting import ThesisReportGenerator
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 CITY           = "Barranco, Lima, Peru"

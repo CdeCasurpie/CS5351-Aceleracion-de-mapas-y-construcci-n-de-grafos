@@ -11,7 +11,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import acj
+import geojac
 import pandas as pd
 import numpy as np
 
@@ -48,13 +48,13 @@ def main():
     
     # Step 2: Load graph using ACJ
     print("[2/4] Loading graph data...")
-    graph = acj.load_graph(nodes, segments)
+    graph = geojac.load_graph(nodes, segments)
     print(f"  Graph loaded: {graph}")
     print()
     
     # Step 3: Create MapIndex
     print("[3/4] Building spatial index...")
-    map_index = acj.MapIndex(graph)
+    map_index = geojac.MapIndex(graph)
     print(f"  MapIndex created: {map_index}")
     print()
     

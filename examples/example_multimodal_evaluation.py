@@ -2,10 +2,10 @@ import os
 import sys
 import osmnx as ox
 
-# Ensure acj package is accessible
+# Ensure geojac package is accessible
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
-import acj
-from acj import UrbanNetwork, ACJTopologicalEvaluator, CompressionRatioMetric, SemanticSpeedDistortionMetric
+import geojac
+from geojac import UrbanNetwork, ACJTopologicalEvaluator, CompressionRatioMetric, SemanticSpeedDistortionMetric
 
 def main():
     print("1. Descargando grafo de OSMnx (Barranco, Lima, Peru)...")
@@ -47,7 +47,7 @@ def main():
         print("\nNo se encontraron metadatos en el grafo simplificado.")
 
     print("\n7. Renderizando comparación de grafos...")
-    from acj import MapIndex, GraphData, render_comparison
+    from geojac import MapIndex, GraphData, render_comparison
     try:
         def add_coords_to_edges(nodes_df, edges_df):
             edges = edges_df.copy()
