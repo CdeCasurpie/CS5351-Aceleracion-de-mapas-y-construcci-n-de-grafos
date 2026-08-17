@@ -14,6 +14,7 @@ import sys
 import numpy as np
 import osmnx as ox
 import pandas as pd
+import matplotlib.pyplot as plt
 from shapely.geometry import LineString, MultiLineString
 
 # ── path bootstrap ────────────────────────────────────────────────────────────
@@ -97,7 +98,7 @@ def _evaluate(raw: UrbanNetwork, net: UrbanNetwork, is_baseline: bool = False) -
 # ── Algorithm runners ─────────────────────────────────────────────────────────
 
 
-def _run_acj_master(network: UrbanNetwork) -> UrbanNetwork:
+def _run_geojac_master(network: UrbanNetwork) -> UrbanNetwork:
     import acj_core
 
     nodes_arr = np.ascontiguousarray(
@@ -294,6 +295,80 @@ def _recalibrate_edge_lengths(network: UrbanNetwork) -> UrbanNetwork:
     return net
 
 
+# ── CUSTOM PLOTTING FUNCTION (2x2 GRID) ───────────────────────────────────────
+
+
+def save_beautiful_2x2_plot(networks_dict, output_base):
+    """Guarda un gráfico en formato 2x2 mucho más grande y claro."""
+    fig, axes = plt.subplots(2, 2, figsize=(18, 18))
+    axes = axes.flatten()
+
+    # Paleta de colores tesis
+    colors = {
+        "Raw OSM": "#000000",  # Negro
+        "OSMnx": "#D90429",  # Rojo (Error)
+        "NeatNet": "#F4A261",  # Naranja (Error geométrico)
+        "GeoJAC": "#2A9D8F",  # Verde (Éxito)
+    }
+
+    bg_color = "#F8F9FA"
+    fig.patch.set_facecolor(bg_color)
+
+    # Asegurar orden
+    labels = ["Raw OSM", "OSMnx", "NeatNet", "GeoJAC"]
+
+    for i, name in enumerate(labels):
+        if name not in networks_dict:
+            continue
+        net = networks_dict[name]
+        ax = axes[i]
+
+        ax.set_facecolor(bg_color)
+        ax.set_title(name, fontsize=24, fontweight="bold", pad=20)
+        ax.axis("off")
+
+        color = colors.get(name, "#333333")
+        node_xy = net.nodes_df.set_index("node_id")[["x", "y"]]
+
+        # Dibujar aristas con geometría (curvas) si existen
+        for _, row in net.edges_df.iterrows():
+            sid = int(row["segment_id"])
+            u, v = int(row["node_start"]), int(row["node_end"])
+            meta = net.edge_metadata.get(sid, {})
+            geom = meta.get("geometry")
+
+            if geom and hasattr(geom, "xy"):
+                xs, ys = geom.xy
+                ax.plot(xs, ys, color=color, lw=2.0, zorder=1)
+            elif u in node_xy.index and v in node_xy.index:
+                ax.plot(
+                    [node_xy.loc[u, "x"], node_xy.loc[v, "x"]],
+                    [node_xy.loc[u, "y"], node_xy.loc[v, "y"]],
+                    color=color,
+                    lw=2.0,
+                    zorder=1,
+                )
+
+        # Dibujar nodos
+        ax.scatter(
+            net.nodes_df["x"],
+            net.nodes_df["y"],
+            color=color,
+            s=25,
+            edgecolor="white",
+            linewidth=0.5,
+            zorder=2,
+        )
+
+    plt.tight_layout()
+    os.makedirs(output_base, exist_ok=True)
+    out_path = os.path.join(output_base, "graph_comparison_2x2.pdf")
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path.replace(".pdf", ".png"), dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"    ✅ Gráficos 2x2 guardados en {out_path}")
+
+
 # ── Main benchmark ────────────────────────────────────────────────────────────
 
 
@@ -312,21 +387,15 @@ def run_benchmark(city_name: str = CITY) -> None:
 
     G_osmnx = ox.simplify_graph(G_raw.copy())
     osmnx_net = UrbanNetwork.from_networkx(G_osmnx)
-    print(
-        f"    OSMnx Standard:    {len(osmnx_net.nodes_df):>5} nodes, "
-        f"{len(osmnx_net.edges_df):>5} edges"
-    )
+    print(f"    OSMnx:     {len(osmnx_net.nodes_df):>5} nodes, {len(osmnx_net.edges_df):>5} edges")
 
-    acj_net = _run_acj_master(raw_net)
-    print(
-        f"    ACJ Topology+DP:   {len(acj_net.nodes_df):>5} nodes, "
-        f"{len(acj_net.edges_df):>5} edges"
-    )
+    geojac_net = _run_geojac_master(raw_net)
+    print(f"    GeoJAC:    {len(geojac_net.nodes_df):>5} nodes, {len(geojac_net.edges_df):>5} edges")
 
     # Ordered so results appear in a consistent column order everywhere.
     competitors: dict[str, UrbanNetwork] = {
-        "OSMnx Standard": osmnx_net,
-        "ACJ Topology+DP": acj_net,
+        "OSMnx": osmnx_net,
+        "GeoJAC": geojac_net,
     }
 
     # NeatNet — optional; gracefully skipped when not installed or if it errors.
@@ -334,17 +403,12 @@ def run_benchmark(city_name: str = CITY) -> None:
         _, edges_gdf = ox.graph_to_gdfs(G_raw)
         simplified_gdf = _neatnet_simplify(edges_gdf)
         neatnet_net = _neatnet_to_urban_network(simplified_gdf)
-        competitors["NeatNet Morfológico"] = neatnet_net
-        print(
-            f"    NeatNet Morfológico: {len(neatnet_net.nodes_df):>5} nodes, "
-            f"{len(neatnet_net.edges_df):>5} edges"
-        )
+        competitors["NeatNet"] = neatnet_net
+        print(f"    NeatNet:   {len(neatnet_net.nodes_df):>5} nodes, {len(neatnet_net.edges_df):>5} edges")
     except ImportError:
-        print("    NeatNet Morfológico: not installed (pip install neatnet) — skipped.")
+        print("    NeatNet: not installed (pip install neatnet) — skipped.")
     except Exception as exc:
-        print(
-            f"    NeatNet Morfológico: failed ({type(exc).__name__}: {exc}) — skipped."
-        )
+        print(f"    NeatNet: failed ({type(exc).__name__}: {exc}) — skipped.")
 
     # ── 3. Evaluate (sin_blindaje — native OSMnx weights) ────────────────────
     print("\n[3] Evaluating SIN BLINDAJE …")
@@ -368,17 +432,17 @@ def run_benchmark(city_name: str = CITY) -> None:
         con_b[name] = result
 
     dual_results = {"sin_blindaje": sin_b, "con_blindaje": con_b}
+    networks_to_plot = {"Raw OSM": raw_net, **competitors}
 
     # ── 5. Save outputs ───────────────────────────────────────────────────────
     if SAVE_PLOTS:
+        print("\n[5] Saving plots …")
+        # Usamos nuestra nueva función 2x2 en lugar del viejo layout horizontal
+        save_beautiful_2x2_plot(networks_to_plot, OUTPUT_BASE)
         try:
-            print("\n[5] Saving plots …")
-            reporter.save_graph_comparison(
-                {"Raw OSM": raw_net, **competitors}, show=False
-            )
             reporter.save_metrics_plots(dual_results, show=False)
         except ImportError as exc:
-            print(f"  [!] Plots skipped — {exc}")
+            print(f"  [!] Metrics Plots skipped — {exc}")
 
     if SAVE_CSV:
         print("\n[5] Saving CSV …")

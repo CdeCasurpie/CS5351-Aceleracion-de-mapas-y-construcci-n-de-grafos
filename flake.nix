@@ -29,6 +29,7 @@
         libx11
         fontconfig
         stdenv.cc.cc.lib
+        zlib
       ];
 
       shellHook = ''
@@ -41,6 +42,7 @@
             libGLU
             libx11
             fontconfig
+            zlib
         ])}:$LD_LIBRARY_PATH"
         
         export QT_QPA_PLATFORM_PLUGIN_PATH="${pkgs.libsForQt5.qtbase.bin}/lib/qt-${pkgs.libsForQt5.qtbase.version}/plugins"

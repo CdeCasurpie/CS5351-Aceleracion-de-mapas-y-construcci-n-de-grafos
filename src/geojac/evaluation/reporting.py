@@ -1,19 +1,16 @@
 """Thesis output generation: matplotlib plots and CSV exports organised by city."""
 
-import math
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from geojac.core.network import UrbanNetwork
-
 # ── Colour palette keyed by algorithm display name ────────────────────────────
 _PALETTE = {
-    "Raw OSM": "black",
-    "OSMnx Standard": "orange",
-    "NeatNet Morfológico": "green",
-    "ACJ Topology+DP": "magenta",
+    "Raw OSM": "#6C757D",  # Gris suave para la referencia
+    "OSMnx": "#D90429",  # Rojo
+    "NeatNet": "#F4A261",  # Naranja
+    "GeoJAC": "#2A9D8F",  # Verde
 }
 _FALLBACK = ["steelblue", "coral", "seagreen", "orchid", "goldenrod"]
 
@@ -24,32 +21,6 @@ def _city_slug(city_name: str) -> str:
 
 def _color(name: str, idx: int) -> str:
     return _PALETTE.get(name, _FALLBACK[idx % len(_FALLBACK)])
-
-
-def _ax_clean(ax):
-    ax.set_facecolor("white")
-    ax.xaxis.set_visible(False)
-    ax.yaxis.set_visible(False)
-    for spine in ax.spines.values():
-        spine.set_visible(False)
-
-
-def _draw_network(
-    ax, network: UrbanNetwork, color: str, lw: float = 0.5, ms: float = 2.0
-) -> None:
-    """Render UrbanNetwork onto ax using edges_df + nodes_df coordinates."""
-    coords = network.nodes_df.set_index("node_id")[["x", "y"]]
-    for _, row in network.edges_df.iterrows():
-        u, v = int(row["node_start"]), int(row["node_end"])
-        if u in coords.index and v in coords.index:
-            ax.plot(
-                [coords.loc[u, "x"], coords.loc[v, "x"]],
-                [coords.loc[u, "y"], coords.loc[v, "y"]],
-                color=color,
-                linewidth=lw,
-                alpha=0.7,
-            )
-    ax.scatter(coords["x"], coords["y"], c=color, s=ms, zorder=3)
 
 
 # ── ThesisReportGenerator ─────────────────────────────────────────────────────
@@ -97,50 +68,6 @@ class ThesisReportGenerator:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def save_graph_comparison(
-        self,
-        networks: dict,  # {display_name: UrbanNetwork}
-        show: bool = False,
-    ) -> Path:
-        """2×2 (or 1×N) side-by-side graph plot for all competitors."""
-        plt = self._plt()
-        names = list(networks.keys())
-        n = len(names)
-        cols = min(n, 4)
-        rows = math.ceil(n / cols) if n > 4 else (2 if n == 4 else 1)
-
-        fig, axes = plt.subplots(
-            rows,
-            cols,
-            figsize=(cols * 7, rows * 7),
-            facecolor="white",
-            sharex=True,
-            sharey=True,
-        )
-        axes = np.array(axes).flatten()
-
-        _TITLES = {
-            "Raw OSM": ("1. Nodos Raw de OSM", "black"),
-            "OSMnx Standard": ("2. Simplificación OSMnx", "orange"),
-            "NeatNet Morfológico": ("3. Simplificación NeatNet", "green"),
-            "ACJ Topology+DP": ("4. Geometría ACJ (Voronoi+DP)", "magenta"),
-        }
-
-        for idx, (name, net) in enumerate(networks.items()):
-            ax = axes[idx]
-            _ax_clean(ax)
-            color = _color(name, idx)
-            _draw_network(ax, net, color)
-            title_text, title_color = _TITLES.get(name, (name, color))
-            ax.set_title(title_text, color=title_color, fontsize=14, fontweight="bold")
-
-        for ax in axes[n:]:
-            ax.set_visible(False)
-
-        fig.suptitle(self.city_name, fontsize=16, fontweight="bold", y=1.01)
-        plt.tight_layout()
-        return self._savefig(fig, f"{self._slug}_graphs_comparison.png", show)
-
     def save_metrics_plots(
         self,
         dual_results: dict,  # {"sin_blindaje": {...}, "con_blindaje": {...}}
@@ -162,10 +89,12 @@ class ThesisReportGenerator:
         )
         for ax, key, title in zip(axes, basic_keys, basic_titles):
             vals = [results[lbl].get(key, 0) for lbl in labels]
-            bars = ax.bar(labels, vals, color=colors)
+            bars = ax.bar(labels, vals, color=colors, edgecolor="black")
             ax.set_title(title)
             ax.set_xticks(range(len(labels)))
-            ax.set_xticklabels(labels, rotation=15, ha="right", fontsize=8)
+            ax.set_xticklabels(
+                labels, rotation=15, ha="right", fontsize=9, fontweight="bold"
+            )
             offset = max(vals) * 0.01 if max(vals) > 0 else 0.5
             for bar, val in zip(bars, vals):
                 ax.text(
@@ -174,60 +103,80 @@ class ThesisReportGenerator:
                     f"{val:.1f}",
                     ha="center",
                     va="bottom",
-                    fontsize=7,
+                    fontsize=9,
+                    fontweight="bold",
                 )
         plt.tight_layout()
         self._savefig(fig, f"{self._slug}_metrics_basic.png", show)
 
-        # ── 2. Sinuosity vs Coords ───────────────────────────────────────────
-        comp_labels = [lbl for lbl in labels if lbl != "Raw OSM"]
-        sin_raw = results.get("Raw OSM", {}).get("avg_sinuosity", 1.0)
-        comp_coords = [results[k].get("coords", 0) for k in comp_labels]
-        comp_sin = [results[k].get("avg_sinuosity", 1.0) for k in comp_labels]
-        x = np.arange(len(comp_labels))
-        width = 0.35
+        # ── 2. Sinuosity vs Coords (Trade-off Scatter Plot) ──────────────────
+        fig, ax = plt.subplots(figsize=(10, 6))
 
-        fig, ax1 = plt.subplots(figsize=(10, 6))
-        ax1.bar(
-            x - width / 2,
-            comp_coords,
-            width,
-            label="Total Coordenadas",
-            color="#1f77b4",
-        )
-        ax1.set_ylabel(
-            "Total de Coordenadas (Vértices)", color="#1f77b4", fontweight="bold"
-        )
-        ax1.tick_params(axis="y", labelcolor="#1f77b4")
-        ax2 = ax1.twinx()
-        ax2.axhline(
-            y=sin_raw, color="black", linestyle="--", label="Sinuosidad Original (Raw)"
-        )
-        ax2.bar(
-            x + width / 2, comp_sin, width, label="Sinuosidad Promedio", color="#ff7f0e"
-        )
-        ax2.set_ylabel("Sinuosidad Promedio", color="#ff7f0e", fontweight="bold")
-        ax2.tick_params(axis="y", labelcolor="#ff7f0e")
-        if comp_sin:
-            ax2.set_ylim(bottom=1.0, top=max(comp_sin + [sin_raw]) * 1.02)
-        ax1.set_title(
-            f"Benchmark: Coordenadas vs Sinuosidad\n{self.city_name}",
+        raw_sinuosity = results.get("Raw OSM", {}).get("avg_sinuosity", 1.0)
+
+        for i, lbl in enumerate(labels):
+            x_val = results[lbl].get("coords", 0)
+            y_val = results[lbl].get("avg_sinuosity", 1.0)
+            c_val = _color(lbl, i)
+
+            # Dibujar la referencia Raw OSM como una estrella y con línea guía
+            if lbl == "Raw OSM":
+                ax.scatter(
+                    x_val,
+                    y_val,
+                    color=c_val,
+                    s=300,
+                    marker="*",
+                    edgecolor="black",
+                    label=f"{lbl} (Ref)",
+                    zorder=5,
+                )
+                ax.axhline(y=y_val, color=c_val, linestyle="--", alpha=0.7, zorder=1)
+            else:
+                ax.scatter(
+                    x_val,
+                    y_val,
+                    color=c_val,
+                    s=150,
+                    marker="o",
+                    edgecolor="black",
+                    label=lbl,
+                    zorder=5,
+                )
+
+            # Añadir etiquetas de texto a cada punto
+            ax.text(
+                x_val,
+                y_val,
+                f"  {lbl}\n  (Sin: {y_val:.3f})",
+                fontsize=10,
+                va="center",
+                ha="left",
+                fontweight="bold",
+                zorder=6,
+            )
+
+        ax.set_title(
+            f"Trade-off: Simplificación vs Geometría Original\n{self.city_name}",
             fontsize=14,
             fontweight="bold",
         )
-        ax1.set_xticks(x)
-        ax1.set_xticklabels(comp_labels, fontweight="bold")
-        lines1, labs1 = ax1.get_legend_handles_labels()
-        lines2, labs2 = ax2.get_legend_handles_labels()
-        ax1.legend(
-            lines1 + lines2,
-            labs1 + labs2,
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.1),
-            ncol=3,
+        ax.set_xlabel(
+            "Total de Coordenadas (Menos coordenadas = Mayor compresión)",
+            fontweight="bold",
+            fontsize=11,
         )
+        ax.set_ylabel("Sinuosidad Promedio", fontweight="bold", fontsize=11)
+
+        # Ajustar el eje Y para que se note claramente la diferencia de la línea 1.0 matemática
+        y_vals = [results[lbl].get("avg_sinuosity", 1.0) for lbl in labels]
+        ax.set_ylim(bottom=0.99, top=max(y_vals) * 1.02)
+
+        ax.grid(True, linestyle=":", alpha=0.6)
+        ax.legend(loc="upper left")
+
         plt.tight_layout()
-        self._savefig(fig, f"{self._slug}_sinuosity_coords.png", show)
+        self._savefig(fig, f"{self._slug}_sinuosity_scatter.png", show)
 
         # ── 3. Keypoint Displacement (TKD) ───────────────────────────────────
         tkd_vals = [results[lbl].get("keypoint_displacement_m", 0.0) for lbl in labels]
@@ -303,22 +252,27 @@ class ThesisReportGenerator:
         x_pos, w = np.arange(len(labels)), 0.35
 
         fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Colores personalizados para los errores pero manteniendo el espíritu de la tesis
         ax.bar(
             x_pos - w / 2,
             med_vals,
             w,
             label="Mediana del Error (Típico)",
-            color="#1f77b4",
+            color="#343A40",
             edgecolor="black",
+            alpha=0.8,
         )
         ax.bar(
             x_pos + w / 2,
             p95_vals,
             w,
             label="Percentil 95 (Peor Caso)",
-            color="#d62728",
+            color="#ADB5BD",
             edgecolor="black",
+            alpha=0.8,
         )
+
         ax.set_title(
             f"Error Absoluto en Caminos Mínimos\n(Pesos Geométricos Recalibrados) — {self.city_name}",
             fontsize=14,
