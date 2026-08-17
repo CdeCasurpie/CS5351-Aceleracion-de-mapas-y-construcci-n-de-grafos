@@ -1,0 +1,5 @@
+city,tier,algorithm,n_runs,n_ok,status_breakdown,median_nodes,median_edges,median_total_length_km,median_avg_sinuosity,median_keypoint_displacement_m,median_reachability_pct,median_path_error_median,median_path_error_p95,median_wall_time_s,median_peak_memory_mb
+"Barranco, Lima, Peru",control,Raw OSM,3,3,OK:3,2053.0,2537.0,67.3426,1.0023,0.0,100.0,0.0,0.0,3.861,450.9
+"Barranco, Lima, Peru",control,OSMnx,3,3,OK:3,424.0,751.0,67.1539,1.0394,0.0,99.09,0.0,20.1233,5.493,467.9
+"Barranco, Lima, Peru",control,GeoJAC,3,3,OK:3,582.0,1065.0,64.8593,1.0,1.2792,99.6,7.8912,66.8686,5.897,477.23
+"Barranco, Lima, Peru",control,NeatNet,3,3,OK:3,333.0,638.0,60.3688,1.0168,3.0296,97.13,42.6235,677.2412,9.57,545.81
