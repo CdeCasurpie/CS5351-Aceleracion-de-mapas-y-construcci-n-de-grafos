@@ -65,15 +65,31 @@ DEFAULT_REPETITIONS = 3
 DEFAULT_RAM_GUARD_GB = 1.5
 DOWNLOAD_TIMEOUT_S = 1800
 
-# tier -> [(city_name, tier_label), ...]
-TIERS: dict[int, list[tuple[str, str]]] = {
-    1: [("Barranco, Lima, Peru", "control")],
+# Metropolitan Lima's bounding box (west, south, east, north; EPSG:4326) —
+# last-resort fallback that needs no Nominatim boundary resolution at all.
+_LIMA_METRO_BBOX = (-77.2, -12.4, -76.7, -11.7)
+
+# tier -> [(city_name, tier_label, candidates), ...]
+# `candidates` is None for the common case (single place-query download).
+# When set, it's an ordered list of alternates to try if the primary
+# `city_name` fails to resolve/download; each item is either a place-query
+# string or ("bbox", west, south, east, north).
+TIERS: dict[int, list[tuple[str, str, list | None]]] = {
+    1: [("Barranco, Lima, Peru", "control", None)],
     2: [
-        ("Cercado de Lima, Lima, Peru", "medium"),
-        ("Eixample, Barcelona, Spain", "medium"),
+        ("Cercado de Lima, Lima, Peru", "medium", None),
+        ("Eixample, Barcelona, Spain", "medium", None),
     ],
-    3: [("Lima Metropolitana, Peru", "large")],
-    4: [("Cuauhtémoc, Ciudad de México, Mexico", "extreme")],
+    3: [(
+        "Lima Metropolitana, Peru", "large",
+        [
+            "Lima Metropolitana, Peru",
+            "Lima, Peru",
+            "Lima Province, Peru",
+            ("bbox", *_LIMA_METRO_BBOX),
+        ],
+    )],
+    4: [("Cuauhtémoc, Ciudad de México, Mexico", "extreme", None)],
 }
 
 
@@ -116,35 +132,70 @@ def _ram_guard_ok(min_gb: float) -> tuple[bool, float]:
 
 # ── graph download / cache ────────────────────────────────────────────────
 
-def _ensure_graph_cached(city_name: str, timeout_s: int) -> tuple[bool, str]:
+def _try_one_download(cmd: list[str], cache_path: str, timeout_s: int) -> tuple[bool, str]:
+    try:
+        proc = subprocess.run(cmd, timeout=timeout_s, capture_output=True, text=True)
+    except subprocess.TimeoutExpired:
+        return False, f"TIMEOUT after {timeout_s}s"
+
+    if proc.returncode != 0 or not os.path.exists(cache_path):
+        stderr_tail = (proc.stderr or "").strip().splitlines()[-1:] or ["(no stderr)"]
+        return False, f"FAILED (rc={proc.returncode}): {stderr_tail[0]}"
+
+    ok_msg = proc.stdout.strip().splitlines()[-1] if proc.stdout else "downloaded"
+    return True, ok_msg
+
+
+def _ensure_graph_cached(
+    city_name: str, timeout_s: int, candidates: list | None = None,
+) -> tuple[bool, str]:
     """Download+project+cache a city's graph if not already cached.
 
-    Returns (ok, message). Runs in a subprocess with its own timeout so a
-    hung Nominatim/Overpass call can never stall the whole benchmark.
+    `city_name` names the *canonical* CSV/cache identity regardless of which
+    candidate query actually resolves. Each candidate is tried in order,
+    each in its own subprocess with its own timeout, so a hung
+    Nominatim/Overpass call can never stall the whole benchmark. The first
+    candidate to succeed wins; if all fail, every attempt's failure reason
+    is reported so it's clear why the city was skipped.
     """
     slug = _city_slug(city_name)
     cache_path = os.path.join(GRAPH_CACHE_DIR, f"{slug}.graphml")
     if os.path.exists(cache_path):
         return True, f"cache hit: {cache_path}"
 
-    cmd = [
-        sys.executable, WORKER,
-        "--mode", "download",
-        "--city", city_name,
-        "--graph-cache", cache_path,
-    ]
-    try:
-        proc = subprocess.run(
-            cmd, timeout=timeout_s, capture_output=True, text=True,
-        )
-    except subprocess.TimeoutExpired:
-        return False, f"download TIMEOUT after {timeout_s}s"
+    attempts = candidates if candidates else [city_name]
+    failures = []
+    for candidate in attempts:
+        if isinstance(candidate, tuple) and candidate[0] == "bbox":
+            _, west, south, east, north = candidate
+            # NOTE: "--bbox", "value" as two argv tokens breaks argparse when
+            # the value starts with a negative number containing commas (it
+            # fails the negative-number heuristic and looks like a stray
+            # flag) — use the "--bbox=value" single-token form instead.
+            cmd = [
+                sys.executable, WORKER, "--mode", "download",
+                f"--bbox={west},{south},{east},{north}",
+                "--graph-cache", cache_path,
+            ]
+            label = f"bbox({west},{south},{east},{north})"
+        else:
+            cmd = [
+                sys.executable, WORKER, "--mode", "download",
+                "--city", candidate, "--graph-cache", cache_path,
+            ]
+            label = candidate
 
-    if proc.returncode != 0 or not os.path.exists(cache_path):
-        stderr_tail = (proc.stderr or "").strip().splitlines()[-1:] or ["(no stderr)"]
-        return False, f"download FAILED (rc={proc.returncode}): {stderr_tail[0]}"
+        print(f"  trying download candidate: {label} …")
+        ok, msg = _try_one_download(cmd, cache_path, timeout_s)
+        if ok:
+            note = f"resolved via {label!r}: {msg}"
+            if len(attempts) > 1:
+                note = f"[{len(failures)} earlier candidate(s) failed] " + note
+            return True, note
+        failures.append(f"{label!r} -> {msg}")
 
-    return True, proc.stdout.strip().splitlines()[-1] if proc.stdout else "downloaded"
+    joined = " | ".join(failures)
+    return False, f"all {len(attempts)} download candidate(s) failed: {joined}"
 
 
 # ── single algorithm run ──────────────────────────────────────────────────
@@ -219,13 +270,13 @@ def run_tiers(
 ) -> None:
     tiers = dict(TIERS)
     if tier4_place:
-        tiers[4] = [(tier4_place, "extreme")]
+        tiers[4] = [(tier4_place, "extreme", None)]
 
     completed = _load_completed()
     os.makedirs(GRAPH_CACHE_DIR, exist_ok=True)
 
     for tier_num in tier_nums:
-        for city_name, tier_label in tiers.get(tier_num, []):
+        for city_name, tier_label, candidates in tiers.get(tier_num, []):
             print(f"\n{'=' * 70}\n[Tier {tier_num}] {city_name}\n{'=' * 70}")
 
             ok, avail = _ram_guard_ok(ram_guard_gb)
@@ -248,7 +299,7 @@ def run_tiers(
 
             slug = _city_slug(city_name)
             graph_cache = os.path.join(GRAPH_CACHE_DIR, f"{slug}.graphml")
-            dl_ok, dl_msg = _ensure_graph_cached(city_name, DOWNLOAD_TIMEOUT_S)
+            dl_ok, dl_msg = _ensure_graph_cached(city_name, DOWNLOAD_TIMEOUT_S, candidates)
             print(f"  graph: {dl_msg}")
             if not dl_ok:
                 for algorithm in algorithms:

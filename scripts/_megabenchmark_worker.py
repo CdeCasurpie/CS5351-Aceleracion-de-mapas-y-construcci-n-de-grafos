@@ -55,15 +55,24 @@ def _peak_memory_mb() -> float:
     return round(kb / 1024, 2)
 
 
-def _do_download(city_name: str, graph_cache: str) -> None:
+def _do_download(city_name: str, graph_cache: str, bbox: list[float] | None) -> None:
     import osmnx as ox
 
-    G_osm = ox.graph_from_place(city_name, network_type="drive", simplify=False)
+    if bbox:
+        west, south, east, north = bbox
+        G_osm = ox.graph_from_bbox(
+            (west, south, east, north), network_type="drive", simplify=False
+        )
+        label = f"bbox({west},{south},{east},{north})"
+    else:
+        G_osm = ox.graph_from_place(city_name, network_type="drive", simplify=False)
+        label = city_name
+
     G_proj = ox.project_graph(G_osm)
     os.makedirs(os.path.dirname(graph_cache), exist_ok=True)
     ox.save_graphml(G_proj, graph_cache)
     print(
-        f"downloaded+cached {city_name}: "
+        f"downloaded+cached {label}: "
         f"{len(G_proj.nodes)} nodes, {len(G_proj.edges)} edges -> {graph_cache}"
     )
 
@@ -122,6 +131,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", required=True, choices=["download", "run"])
     ap.add_argument("--city", help="City name for OSMnx (download mode)")
+    ap.add_argument(
+        "--bbox", help="west,south,east,north — bbox fallback for download mode"
+    )
     ap.add_argument("--graph-cache", required=True, help="Path to .graphml cache")
     ap.add_argument("--algorithm", help="Raw OSM | OSMnx | GeoJAC | NeatNet")
     ap.add_argument("--result-path", help="Where to write JSON metrics (run mode)")
@@ -129,9 +141,14 @@ def main() -> int:
 
     try:
         if args.mode == "download":
-            if not args.city:
-                raise ValueError("--city is required for --mode download")
-            _do_download(args.city, args.graph_cache)
+            bbox = None
+            if args.bbox:
+                bbox = [float(v) for v in args.bbox.split(",")]
+                if len(bbox) != 4:
+                    raise ValueError("--bbox must be west,south,east,north")
+            elif not args.city:
+                raise ValueError("--city or --bbox is required for --mode download")
+            _do_download(args.city, args.graph_cache, bbox)
         else:
             if not args.algorithm or not args.result_path:
                 raise ValueError(
