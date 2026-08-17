@@ -3,3 +3,11 @@ city,tier,algorithm,n_runs,n_ok,status_breakdown,median_nodes,median_edges,media
 "Barranco, Lima, Peru",control,OSMnx,3,3,OK:3,424.0,751.0,67.1539,1.0394,0.0,99.09,0.0,20.1233,5.493,467.9
 "Barranco, Lima, Peru",control,GeoJAC,3,3,OK:3,582.0,1065.0,64.8593,1.0,1.2792,99.6,7.8912,66.8686,5.897,477.23
 "Barranco, Lima, Peru",control,NeatNet,3,3,OK:3,333.0,638.0,60.3688,1.0168,3.0296,97.13,42.6235,677.2412,9.57,545.81
+"Cercado de Lima, Lima, Peru",medium,Raw OSM,3,0,FAILED:3,,,,,,,,,,
+"Cercado de Lima, Lima, Peru",medium,OSMnx,3,0,FAILED:3,,,,,,,,,,
+"Cercado de Lima, Lima, Peru",medium,GeoJAC,3,0,FAILED:3,,,,,,,,,,
+"Cercado de Lima, Lima, Peru",medium,NeatNet,3,0,FAILED:3,,,,,,,,,,
+"Eixample, Barcelona, Spain",medium,Raw OSM,3,3,OK:3,6663.0,7522.0,147.211,0.9995,0.0,100.0,0.0,0.0,5.865,500.23
+"Eixample, Barcelona, Spain",medium,OSMnx,3,3,OK:3,804.0,1460.0,147.211,1.008,0.0,100.0,0.0,22.7242,19.863,585.52
+"Eixample, Barcelona, Spain",medium,GeoJAC,3,3,OK:3,1012.0,1912.0,144.9642,1.0,0.6452,99.48,1.1789,26.2589,18.917,586.39
+"Eixample, Barcelona, Spain",medium,NeatNet,3,3,OK:3,583.0,1158.0,137.1216,1.0136,2.8262,98.5,53.5131,1577.756,26.468,708.24

@@ -11,3 +11,27 @@ city,tier,algorithm,run_number,status,nodes,edges,total_length_km,avg_sinuosity,
 "Barranco, Lima, Peru",control,NeatNet,1,OK,333.0,638.0,60.3688,1.016824,3.0296,97.13,42.6235,677.2412,9.545,545.81,
 "Barranco, Lima, Peru",control,NeatNet,2,OK,333.0,638.0,60.3688,1.016824,3.0296,97.13,42.6235,677.2412,9.575,545.74,
 "Barranco, Lima, Peru",control,NeatNet,3,OK,333.0,638.0,60.3688,1.016824,3.0296,97.13,42.6235,677.2412,9.57,546.36,
+"Cercado de Lima, Lima, Peru",medium,Raw OSM,1,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,Raw OSM,2,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,Raw OSM,3,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,OSMnx,1,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,OSMnx,2,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,OSMnx,3,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,GeoJAC,1,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,GeoJAC,2,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,GeoJAC,3,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,NeatNet,1,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,NeatNet,2,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Cercado de Lima, Lima, Peru",medium,NeatNet,3,FAILED,,,,,,,,,,,"all 1 download candidate(s) failed: 'Cercado de Lima, Lima, Peru' -> FAILED (rc=1): ValueError: Found no graph nodes within the requested polygon."
+"Eixample, Barcelona, Spain",medium,Raw OSM,1,OK,6663.0,7522.0,147.211,0.999544,0.0,100.0,0.0,0.0,6.237,500.23,
+"Eixample, Barcelona, Spain",medium,Raw OSM,2,OK,6663.0,7522.0,147.211,0.999544,0.0,100.0,0.0,0.0,5.865,500.25,
+"Eixample, Barcelona, Spain",medium,Raw OSM,3,OK,6663.0,7522.0,147.211,0.999544,0.0,100.0,0.0,0.0,5.674,500.07,
+"Eixample, Barcelona, Spain",medium,OSMnx,1,OK,804.0,1460.0,147.211,1.008037,0.0,100.0,0.0,22.7242,19.863,585.1,
+"Eixample, Barcelona, Spain",medium,OSMnx,2,OK,804.0,1460.0,147.211,1.008037,0.0,100.0,0.0,22.7242,18.019,585.89,
+"Eixample, Barcelona, Spain",medium,OSMnx,3,OK,804.0,1460.0,147.211,1.008037,0.0,100.0,0.0,22.7242,21.802,585.52,
+"Eixample, Barcelona, Spain",medium,GeoJAC,1,OK,1012.0,1912.0,144.9642,1.0,0.6452,99.48,1.1789,26.2589,18.917,586.73,
+"Eixample, Barcelona, Spain",medium,GeoJAC,2,OK,1012.0,1912.0,144.9642,1.0,0.6452,99.48,1.1789,26.2589,18.559,586.26,
+"Eixample, Barcelona, Spain",medium,GeoJAC,3,OK,1012.0,1912.0,144.9642,1.0,0.6452,99.48,1.1789,26.2589,19.496,586.39,
+"Eixample, Barcelona, Spain",medium,NeatNet,1,OK,583.0,1158.0,137.1216,1.013632,2.8262,98.5,53.5131,1577.756,27.314,708.0,
+"Eixample, Barcelona, Spain",medium,NeatNet,2,OK,583.0,1158.0,137.1216,1.013632,2.8262,98.5,53.5131,1577.756,26.468,708.49,
+"Eixample, Barcelona, Spain",medium,NeatNet,3,OK,583.0,1158.0,137.1216,1.013632,2.8262,98.5,53.5131,1577.756,23.326,708.24,
