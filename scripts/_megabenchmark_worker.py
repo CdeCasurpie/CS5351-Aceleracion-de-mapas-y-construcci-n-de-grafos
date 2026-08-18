@@ -58,6 +58,27 @@ def _peak_memory_mb() -> float:
 def _do_download(city_name: str, graph_cache: str, bbox: list[float] | None) -> None:
     import osmnx as ox
 
+    # HTTP-level (socket) timeout for the Overpass/Nominatim requests this
+    # makes internally — bounds the connect+read time of each individual
+    # HTTP call, independent of and *underneath* the orchestrator's
+    # DOWNLOAD_TIMEOUT_S subprocess timeout. Verified against the installed
+    # osmnx==2.1.0 source (.venv/lib/python3.13/site-packages/osmnx/): the
+    # setting is `requests_timeout` (NOT `timeout` — osmnx.settings has no
+    # such attribute; setting one would silently no-op) and it's threaded
+    # straight into `requests.get/post(..., timeout=settings.requests_timeout)`
+    # in _overpass.py, _nominatim.py, _http.py, and elevation.py. 180s is
+    # already osmnx's own default here — set explicitly so intent doesn't
+    # silently depend on that default surviving a future osmnx upgrade.
+    #
+    # CAVEAT: this bounds the HTTP request/response phase only. It does NOT
+    # bound DNS resolution (getaddrinfo()), which happens before the socket
+    # timeout applies and is a separate, unbounded blocking libc call in
+    # Python's stdlib socket layer. A hang in DNS resolution — plausible
+    # kernel "D"-state cause of the earlier 6.5h stall — would not be fixed
+    # by this setting. No pure-Python fix exists for that; it would need a
+    # bounded/async resolver.
+    ox.settings.requests_timeout = 180
+
     if bbox:
         west, south, east, north = bbox
         G_osm = ox.graph_from_bbox(

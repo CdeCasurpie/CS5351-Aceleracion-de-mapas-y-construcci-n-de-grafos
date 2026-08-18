@@ -22,9 +22,10 @@ Usage:
     nix develop --command python3 scripts/run_megabenchmark.py --summarize-only
 
 Resumability: on startup, any (city, algorithm, run_number) already present
-in the CSV (any status — OK, TIMEOUT, FAILED, or SKIPPED_RAM all count as
-"already attempted") is skipped. To force a retry of a specific failed
-combination, delete its row(s) from outputs/benchmark_results.csv first.
+in the CSV (any status — OK, TIMEOUT, DOWNLOAD_TIMEOUT, FAILED, or
+SKIPPED_RAM all count as "already attempted") is skipped. To force a retry
+of a specific failed combination, delete its row(s) from
+outputs/benchmark_results.csv first.
 """
 import argparse
 import csv
@@ -63,7 +64,22 @@ CSV_FIELDS = [
 DEFAULT_TIMEOUT_S = 1800
 DEFAULT_REPETITIONS = 3
 DEFAULT_RAM_GUARD_GB = 1.5
-DOWNLOAD_TIMEOUT_S = 1800
+# Separate, shorter timeout for the graph-download step. 10 min is generous
+# even for a large metro area's Overpass query — it should never need the
+# full 1800s an algorithm run gets. Kept distinct from DEFAULT_TIMEOUT_S so
+# the two can be tuned independently.
+#
+# NOTE: like the algorithm-run timeout, this is enforced via
+# subprocess.run(timeout=...), which does kill()+wait() on expiry. If the
+# child is blocked in kernel-level uninterruptible sleep (Linux "D" state —
+# e.g. a hung DNS/socket syscall with no request-level timeout set), even
+# SIGKILL cannot unblock it until the kernel does, so wait() can still take
+# far longer than DOWNLOAD_TIMEOUT_S in that specific failure mode. This
+# constant bounds the *nominal* wait and gives that failure mode its own
+# CSV status (DOWNLOAD_TIMEOUT); it does not eliminate the D-state hazard
+# itself — that would need a socket-level timeout inside osmnx/requests
+# (ox.settings.requests_timeout).
+DOWNLOAD_TIMEOUT_S = 600
 
 # Metropolitan Lima's bounding box (west, south, east, north; EPSG:4326) —
 # last-resort fallback that needs no Nominatim boundary resolution at all.
@@ -132,23 +148,28 @@ def _ram_guard_ok(min_gb: float) -> tuple[bool, float]:
 
 # ── graph download / cache ────────────────────────────────────────────────
 
-def _try_one_download(cmd: list[str], cache_path: str, timeout_s: int) -> tuple[bool, str]:
+def _try_one_download(
+    cmd: list[str], cache_path: str, timeout_s: int,
+) -> tuple[bool, str, bool]:
+    """Returns (ok, message, timed_out) — timed_out is True only when this
+    specific attempt hit the subprocess-level wall clock, as opposed to
+    failing for any other reason (bad place name, network error, ...)."""
     try:
         proc = subprocess.run(cmd, timeout=timeout_s, capture_output=True, text=True)
     except subprocess.TimeoutExpired:
-        return False, f"TIMEOUT after {timeout_s}s"
+        return False, f"TIMEOUT after {timeout_s}s", True
 
     if proc.returncode != 0 or not os.path.exists(cache_path):
         stderr_tail = (proc.stderr or "").strip().splitlines()[-1:] or ["(no stderr)"]
-        return False, f"FAILED (rc={proc.returncode}): {stderr_tail[0]}"
+        return False, f"FAILED (rc={proc.returncode}): {stderr_tail[0]}", False
 
     ok_msg = proc.stdout.strip().splitlines()[-1] if proc.stdout else "downloaded"
-    return True, ok_msg
+    return True, ok_msg, False
 
 
 def _ensure_graph_cached(
     city_name: str, timeout_s: int, candidates: list | None = None,
-) -> tuple[bool, str]:
+) -> tuple[bool, str, bool]:
     """Download+project+cache a city's graph if not already cached.
 
     `city_name` names the *canonical* CSV/cache identity regardless of which
@@ -157,14 +178,20 @@ def _ensure_graph_cached(
     Nominatim/Overpass call can never stall the whole benchmark. The first
     candidate to succeed wins; if all fail, every attempt's failure reason
     is reported so it's clear why the city was skipped.
+
+    Returns (ok, message, any_timed_out) — any_timed_out is True if at least
+    one candidate specifically hit the download timeout (as opposed to
+    failing outright), so the caller can log a DOWNLOAD_TIMEOUT status
+    distinct from a plain FAILED.
     """
     slug = _city_slug(city_name)
     cache_path = os.path.join(GRAPH_CACHE_DIR, f"{slug}.graphml")
     if os.path.exists(cache_path):
-        return True, f"cache hit: {cache_path}"
+        return True, f"cache hit: {cache_path}", False
 
     attempts = candidates if candidates else [city_name]
     failures = []
+    any_timed_out = False
     for candidate in attempts:
         if isinstance(candidate, tuple) and candidate[0] == "bbox":
             _, west, south, east, north = candidate
@@ -186,16 +213,17 @@ def _ensure_graph_cached(
             label = candidate
 
         print(f"  trying download candidate: {label} …")
-        ok, msg = _try_one_download(cmd, cache_path, timeout_s)
+        ok, msg, timed_out = _try_one_download(cmd, cache_path, timeout_s)
         if ok:
             note = f"resolved via {label!r}: {msg}"
             if len(attempts) > 1:
                 note = f"[{len(failures)} earlier candidate(s) failed] " + note
-            return True, note
+            return True, note, False
+        any_timed_out = any_timed_out or timed_out
         failures.append(f"{label!r} -> {msg}")
 
     joined = " | ".join(failures)
-    return False, f"all {len(attempts)} download candidate(s) failed: {joined}"
+    return False, f"all {len(attempts)} download candidate(s) failed: {joined}", any_timed_out
 
 
 # ── single algorithm run ──────────────────────────────────────────────────
@@ -299,9 +327,16 @@ def run_tiers(
 
             slug = _city_slug(city_name)
             graph_cache = os.path.join(GRAPH_CACHE_DIR, f"{slug}.graphml")
-            dl_ok, dl_msg = _ensure_graph_cached(city_name, DOWNLOAD_TIMEOUT_S, candidates)
+            dl_ok, dl_msg, dl_timed_out = _ensure_graph_cached(
+                city_name, DOWNLOAD_TIMEOUT_S, candidates,
+            )
             print(f"  graph: {dl_msg}")
             if not dl_ok:
+                # DOWNLOAD_TIMEOUT distinguishes "at least one candidate hit
+                # the download wall clock" from a plain FAILED (bad place
+                # name, network refused, ...) — same pattern _run_one uses
+                # to distinguish TIMEOUT from FAILED at the algorithm level.
+                dl_status = "DOWNLOAD_TIMEOUT" if dl_timed_out else "FAILED"
                 for algorithm in algorithms:
                     for run_number in range(1, repetitions + 1):
                         key = (city_name, algorithm, run_number)
@@ -310,7 +345,7 @@ def run_tiers(
                         _append_row({
                             "city": city_name, "tier": tier_label,
                             "algorithm": algorithm, "run_number": run_number,
-                            "status": "FAILED", "note": dl_msg,
+                            "status": dl_status, "note": dl_msg,
                         })
                         completed.add(key)
                 continue
