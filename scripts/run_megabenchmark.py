@@ -34,6 +34,11 @@ that a retry won't fix, and WARNING (see _sanity_check_scale) flags a
 plausibly-wrong download candidate that needs a human decision, not an
 automatic retry loop. To force a retry of a TIMEOUT/SKIPPED_RAM/WARNING/OK
 row too, delete it from outputs/benchmark_results.csv manually first.
+
+Pruning is scoped to the tier(s) passed via --tiers for that invocation —
+a `--tiers 4` run never prunes (or even inspects) Tier 3's rows, so
+run_all_tiers.sh's one-subprocess-per-tier design can't let one tier's
+resumability pass silently delete another tier's already-committed data.
 """
 import argparse
 import csv
@@ -231,7 +236,9 @@ def _sanity_check_scale(row: dict) -> None:
         row["note"] = f"{extra} | {row['note']}" if row.get("note") else extra
 
 
-def _load_completed() -> set[tuple[str, str, int]]:
+def _load_completed(
+    scope_tier_labels: set[str] | None = None,
+) -> set[tuple[str, str, int]]:
     """(city, algorithm, run_number) triples with a terminal status.
 
     As a side effect, rewrites RESULTS_CSV to drop any row whose status is
@@ -242,13 +249,30 @@ def _load_completed() -> set[tuple[str, str, int]]:
     same key alongside the old failed one, corrupting n_runs/n_ok in
     write_summary(). Pruned rows aren't unrecoverably lost — they're still
     in git history from the last checkpoint commit.
+
+    `scope_tier_labels`, when given, restricts pruning to rows whose `tier`
+    field is in that set — rows for any other tier are left completely
+    untouched, not even inspected for pruning purposes. This matters
+    because run_all_tiers.sh invokes this script once *per tier* (separate
+    subprocess each time via `--tiers N`): without scoping, a `--tiers 4`
+    invocation's own call to this function would prune Tier 3's already-
+    committed FAILED rows as an unrelated side effect of loading its own
+    completed-set, silently deleting them with no retry ever attempted
+    (real incident, 2026-08-18: Lima Metropolitana's 12 FAILED rows
+    vanished this way during a Tier 4 run and were never regenerated,
+    since Tier 3 wasn't in that invocation's scope at all). Pass None
+    (default) to prune globally — correct when a single invocation covers
+    all the tiers you care about (e.g. `--tiers 1,2,3,4` together).
     """
     if not os.path.exists(RESULTS_CSV):
         return set()
     with open(RESULTS_CSV, newline="") as f:
         rows = list(csv.DictReader(f))
 
-    keep = [r for r in rows if r["status"] in _TERMINAL_STATUSES]
+    def _in_scope(r: dict) -> bool:
+        return scope_tier_labels is None or r["tier"] in scope_tier_labels
+
+    keep = [r for r in rows if r["status"] in _TERMINAL_STATUSES or not _in_scope(r)]
     pruned = len(rows) - len(keep)
     if pruned:
         with open(RESULTS_CSV, "w", newline="") as f:
@@ -501,7 +525,14 @@ def run_tiers(
     if tier4_place:
         tiers[4] = [(tier4_place, "extreme", None)]
 
-    completed = _load_completed()
+    # Only prune rows belonging to the tier(s) this invocation actually
+    # processes — see _load_completed's docstring for why this matters.
+    scope_tier_labels = {
+        tier_label
+        for tier_num in tier_nums
+        for _, tier_label, _ in tiers.get(tier_num, [])
+    }
+    completed = _load_completed(scope_tier_labels)
     os.makedirs(GRAPH_CACHE_DIR, exist_ok=True)
 
     for tier_num in tier_nums:
