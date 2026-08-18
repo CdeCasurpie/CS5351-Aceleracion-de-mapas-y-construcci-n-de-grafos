@@ -57,7 +57,7 @@ def _peak_memory_mb() -> float:
 
 def _do_download(
     city_name: str, graph_cache: str, bbox: list[float] | None,
-    network_type: str = "drive",
+    network_type: str = "drive", osmid: str | None = None,
 ) -> None:
     import osmnx as ox
 
@@ -82,7 +82,21 @@ def _do_download(
     # bounded/async resolver.
     ox.settings.requests_timeout = 180
 
-    if bbox:
+    if osmid:
+        # Resolve an explicit OSM relation directly, bypassing Nominatim's
+        # free-text ranking entirely — for cases like "Cercado de Lima"
+        # where a place-name search never surfaces the actual boundary
+        # (matches unrelated POIs instead; see TIERS' comment for the
+        # 2026-08-18 diagnosis). graph_from_place has no by_osmid param in
+        # this osmnx version (checked its signature directly), so this is
+        # geocode-then-build-from-polygon instead of a one-call helper.
+        gdf = ox.geocode_to_gdf(osmid, by_osmid=True)
+        polygon = gdf.geometry.iloc[0]
+        G_osm = ox.graph_from_polygon(
+            polygon, network_type=network_type, simplify=False
+        )
+        label = f"{osmid} ({gdf['display_name'].iloc[0] if 'display_name' in gdf.columns else osmid})"
+    elif bbox:
         west, south, east, north = bbox
         G_osm = ox.graph_from_bbox(
             (west, south, east, north), network_type=network_type, simplify=False
@@ -159,6 +173,12 @@ def main() -> int:
         "--bbox", help="west,south,east,north — bbox fallback for download mode"
     )
     ap.add_argument(
+        "--osmid",
+        help="Explicit OSM relation, e.g. 'R1944756' — resolved via "
+             "geocode_to_gdf(by_osmid=True) + graph_from_polygon, bypassing "
+             "Nominatim's free-text place-name search entirely (download mode)",
+    )
+    ap.add_argument(
         "--network-type", default="drive",
         help="osmnx network_type for download mode (default: drive)",
     )
@@ -174,9 +194,13 @@ def main() -> int:
                 bbox = [float(v) for v in args.bbox.split(",")]
                 if len(bbox) != 4:
                     raise ValueError("--bbox must be west,south,east,north")
-            elif not args.city:
-                raise ValueError("--city or --bbox is required for --mode download")
-            _do_download(args.city, args.graph_cache, bbox, args.network_type)
+            elif not (args.city or args.osmid):
+                raise ValueError(
+                    "--city, --bbox, or --osmid is required for --mode download"
+                )
+            _do_download(
+                args.city, args.graph_cache, bbox, args.network_type, args.osmid,
+            )
         else:
             if not args.algorithm or not args.result_path:
                 raise ValueError(

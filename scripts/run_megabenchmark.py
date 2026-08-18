@@ -22,17 +22,18 @@ Usage:
     nix develop --command python3 scripts/run_megabenchmark.py --summarize-only
 
 Resumability: on startup, any (city, algorithm, run_number) already logged
-with a *terminal* status (OK, TIMEOUT, or SKIPPED_RAM) is skipped. FAILED
-and DOWNLOAD_TIMEOUT rows are treated as retry-eligible, not done — they're
-usually download/environment issues (network, DNS, Nominatim) rather than a
-deterministic property of the (city, algorithm) pair, so a fresh run prunes
-those rows from the CSV and re-attempts them automatically. TIMEOUT and
-SKIPPED_RAM stay terminal on purpose: silently re-attempting those on every
-future launch risks burning hours re-running a combination that's
-genuinely, deterministically too slow/heavy (e.g. NeatNet's documented
-O(N^3) blowup on a huge city), not just unlucky. To force a retry of a
-TIMEOUT/SKIPPED_RAM/OK row too, delete it from outputs/benchmark_results.csv
-manually first.
+with a *terminal* status (OK, WARNING, TIMEOUT, or SKIPPED_RAM) is skipped.
+FAILED and DOWNLOAD_TIMEOUT rows are treated as retry-eligible, not done —
+they're usually download/environment issues (network, DNS, Nominatim)
+rather than a deterministic property of the (city, algorithm) pair, so a
+fresh run prunes those rows from the CSV and re-attempts them
+automatically. TIMEOUT, SKIPPED_RAM, and WARNING stay terminal on purpose:
+TIMEOUT/SKIPPED_RAM usually reflect a genuine, deterministic resource/
+complexity limit (e.g. NeatNet's documented O(N^3) blowup on a huge city)
+that a retry won't fix, and WARNING (see _sanity_check_scale) flags a
+plausibly-wrong download candidate that needs a human decision, not an
+automatic retry loop. To force a retry of a TIMEOUT/SKIPPED_RAM/WARNING/OK
+row too, delete it from outputs/benchmark_results.csv manually first.
 """
 import argparse
 import csv
@@ -108,6 +109,9 @@ _CERCADO_LIMA_BBOX = (-77.08, -12.09, -76.98, -12.00)
 # one of:
 #   - a place-query string                      (network_type="drive")
 #   - ("place", place_query_string, network_type)  (explicit network_type)
+#   - ("osmid", "R<id>", network_type)      (explicit OSM relation, via
+#                                             geocode_to_gdf(by_osmid=True)
+#                                             + graph_from_polygon)
 #   - ("bbox", west, south, east, north)         (network_type="drive")
 TIERS: dict[int, list[tuple[str, str, list | None]]] = {
     1: [("Barranco, Lima, Peru", "control", None)],
@@ -115,15 +119,43 @@ TIERS: dict[int, list[tuple[str, str, list | None]]] = {
         (
             "Cercado de Lima, Lima, Peru", "medium",
             [
-                # a) current/original query, network_type="drive"
+                # Primary: verified correct 2026-08-18. Nominatim's
+                # free-text search for "Cercado de Lima" never surfaces
+                # the actual admin boundary — every variant tried matched
+                # unrelated POIs (a bank, a ministry, "Editora Perú" —
+                # a newspaper office at a 0.05km x 0.03km address) whose
+                # address happens to contain "Cercado de Lima" as an
+                # Urbanización name. Peru's district is officially just
+                # named "Lima" (homonymous with the city/province), which
+                # is why the place-name search never finds it. Found via
+                # a direct Overpass query for admin_level=8 boundaries
+                # named "Lima" in the metro bbox, then confirmed with a
+                # real graph_from_polygon build: 11,550 nodes / 16,845
+                # edges, network_type=drive — sane relative to Barranco
+                # (2,053) and Eixample (6,663).
+                ("osmid", "R1944756", "drive"),
+                # Historical fallbacks below, kept only in case the osmid
+                # approach ever breaks (e.g. relation renumbered/merged
+                # upstream in OSM) — none of these are known-good:
+                # a) original query, network_type="drive" — known-bad,
+                #    matches the "Editora Perú" office building, not the
+                #    district (see above)
                 "Cercado de Lima, Lima, Peru",
-                # b) same place, but "all" ways in case "drive" is too
-                #    restrictive for however this specific boundary resolved
+                # b) same place, network_type="all" — same known-bad tiny
+                #    polygon; confirmed via download_errors.log that this
+                #    fails identically regardless of network_type
                 ("place", "Cercado de Lima, Lima, Peru", "all"),
-                # c) more specific disambiguation string, still "drive"
+                # c) more specific disambiguation string — also matches
+                #    only POIs, never the boundary, per direct Nominatim
+                #    query during diagnosis
                 "Cercado de Lima, Lima Province, Peru",
-                # d) last resort: explicit bbox, needs no Nominatim
-                #    boundary resolution at all, "drive"
+                # d) last resort: explicit bbox — CONFIRMED WRONG in
+                #    practice (resolved 61,473 nodes / 101,436 edges vs
+                #    the real ~11,550/~16,845 — pulls in a large chunk of
+                #    surrounding Lima, not just the district). Left in
+                #    only as an absolute last resort; the scale sanity
+                #    check below (_EXPECTED_MAX_NODES) is what catches it
+                #    if this candidate is ever actually reached again.
                 ("bbox", *_CERCADO_LIMA_BBOX),
             ],
         ),
@@ -147,8 +179,56 @@ TIERS: dict[int, list[tuple[str, str, list | None]]] = {
 # Statuses that represent a real, finished attempt and stay skipped on
 # resume. Anything else currently logged (FAILED, DOWNLOAD_TIMEOUT) is
 # retry-eligible — see the module docstring's Resumability section for why
-# the split lands here specifically.
-_TERMINAL_STATUSES = {"OK", "TIMEOUT", "SKIPPED_RAM"}
+# the split lands here specifically. WARNING (see _sanity_check_scale
+# below) is terminal like OK: re-attempting it wouldn't fix anything on its
+# own — the download candidate itself needs a human look, not a retry loop.
+_TERMINAL_STATUSES = {"OK", "TIMEOUT", "SKIPPED_RAM", "WARNING"}
+
+# Rough per-tier node-count ceilings for a lightweight scale sanity check —
+# a trip-wire, not a hard limit. A graph whose node count blows way past
+# its tier's ceiling almost always means the download resolved to the
+# wrong place rather than a legitimately huge (or tiny) city — e.g. the
+# 2026-08-18 Cercado de Lima incident, where a bbox fallback silently
+# produced 61,473 nodes (should be ~11,550) by pulling in a chunk of
+# surrounding Lima instead of just the district. This check is what would
+# have caught that automatically instead of requiring manual review.
+#
+# control/medium are calibrated against real data (Barranco=2,053,
+# Eixample=6,663, Cercado de Lima=11,550, all network_type=drive raw
+# counts). large/extreme are rough placeholder estimates — as of this
+# writing neither Lima Metropolitana nor Cuauhtémoc has ever downloaded
+# successfully, so there's no real number to calibrate against yet; expect
+# to tighten these once real data exists.
+_EXPECTED_MAX_NODES = {
+    "control": 10_000,
+    "medium": 30_000,
+    "large": 2_000_000,
+    "extreme": 1_000_000,
+}
+
+
+def _sanity_check_scale(row: dict) -> None:
+    """Downgrade an OK row to WARNING (in place) if its node count blows
+    past its tier's rough ceiling. Doesn't touch any other field — the
+    metrics are left as computed, just flagged for a human to look at
+    before trusting them."""
+    if row.get("status") != "OK":
+        return
+    ceiling = _EXPECTED_MAX_NODES.get(row.get("tier"))
+    if ceiling is None:
+        return
+    try:
+        nodes = float(row.get("nodes") or 0)
+    except (TypeError, ValueError):
+        return
+    if nodes > ceiling:
+        row["status"] = "WARNING"
+        extra = (
+            f"scale sanity check: {int(nodes)} nodes exceeds the "
+            f"{row['tier']!r} tier's ~{ceiling} ceiling — likely resolved "
+            f"to the wrong place; review before trusting this row"
+        )
+        row["note"] = f"{extra} | {row['note']}" if row.get("note") else extra
 
 
 def _load_completed() -> set[tuple[str, str, int]]:
@@ -278,8 +358,11 @@ def _ensure_graph_cached(
 
     Each candidate is a place-query string (network_type="drive"),
     ("place", place_query_string, network_type) for an explicit
-    network_type, or ("bbox", west, south, east, north) (network_type
-    "drive").
+    network_type, ("osmid", "R<id>", network_type) to resolve an explicit
+    OSM relation directly (bypassing Nominatim's free-text ranking
+    entirely — use when a place-name search doesn't reliably surface the
+    boundary you actually want), or ("bbox", west, south, east, north)
+    (network_type "drive").
 
     Returns (ok, message, any_timed_out) — any_timed_out is True if at least
     one candidate specifically hit the download timeout (as opposed to
@@ -315,6 +398,14 @@ def _ensure_graph_cached(
                 "--graph-cache", cache_path,
             ]
             label = f"{place} (network_type={network_type})"
+        elif isinstance(candidate, tuple) and candidate[0] == "osmid":
+            _, osmid, network_type = candidate
+            cmd = [
+                sys.executable, WORKER, "--mode", "download",
+                "--osmid", osmid, "--network-type", network_type,
+                "--graph-cache", cache_path,
+            ]
+            label = f"{osmid} (network_type={network_type})"
         else:
             cmd = [
                 sys.executable, WORKER, "--mode", "download",
@@ -486,6 +577,7 @@ def run_tiers(
                         city_name, tier_label, algorithm,
                         run_number, graph_cache, timeout_s,
                     )
+                    _sanity_check_scale(row)
                     _append_row(row)
                     completed.add(key)
                     print(f"{row['status']} ({row.get('wall_time_s', '?')}s, "
