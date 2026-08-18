@@ -35,3 +35,15 @@ city,tier,algorithm,run_number,status,nodes,edges,total_length_km,avg_sinuosity,
 "Cercado de Lima, Lima, Peru",medium,NeatNet,1,OK,2011.0,4702.0,458.6047,1.018554,2.5332,94.46,196.2342,1347.9525,124.79,1611.45,
 "Cercado de Lima, Lima, Peru",medium,NeatNet,2,OK,2011.0,4702.0,458.6047,1.018554,2.5332,94.46,196.2342,1347.9525,117.225,1611.73,
 "Cercado de Lima, Lima, Peru",medium,NeatNet,3,OK,2011.0,4702.0,458.6047,1.018554,2.5332,94.46,196.2342,1347.9525,118.059,1611.76,
+"Lima Metropolitana, Peru",large,Raw OSM,1,FAILED,,,,,,,,,3.209,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,Raw OSM,2,FAILED,,,,,,,,,2.966,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,Raw OSM,3,FAILED,,,,,,,,,2.882,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,OSMnx,1,FAILED,,,,,,,,,2.833,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,OSMnx,2,FAILED,,,,,,,,,2.999,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,OSMnx,3,FAILED,,,,,,,,,3.01,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,GeoJAC,1,FAILED,,,,,,,,,3.052,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,GeoJAC,2,FAILED,,,,,,,,,2.806,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,GeoJAC,3,FAILED,,,,,,,,,4.393,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,NeatNet,1,FAILED,,,,,,,,,2.799,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,NeatNet,2,FAILED,,,,,,,,,2.945,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,NeatNet,3,FAILED,,,,,,,,,2.957,,"ParseError: no element found: line 1, column 0"
