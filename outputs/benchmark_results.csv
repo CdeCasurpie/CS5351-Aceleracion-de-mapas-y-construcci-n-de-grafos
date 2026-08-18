@@ -47,3 +47,15 @@ city,tier,algorithm,run_number,status,nodes,edges,total_length_km,avg_sinuosity,
 "Cuauhtémoc, Ciudad de México, Mexico",extreme,NeatNet,1,TIMEOUT,,,,,,,,,1800.456,,exceeded 1800s hard timeout
 "Cuauhtémoc, Ciudad de México, Mexico",extreme,NeatNet,2,TIMEOUT,,,,,,,,,1801.967,,exceeded 1800s hard timeout
 "Cuauhtémoc, Ciudad de México, Mexico",extreme,NeatNet,3,TIMEOUT,,,,,,,,,1800.474,,exceeded 1800s hard timeout
+"Lima Metropolitana, Peru",large,Raw OSM,1,FAILED,,,,,,,,,3.351,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,Raw OSM,2,FAILED,,,,,,,,,3.218,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,Raw OSM,3,FAILED,,,,,,,,,3.069,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,OSMnx,1,FAILED,,,,,,,,,2.971,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,OSMnx,2,FAILED,,,,,,,,,4.463,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,OSMnx,3,FAILED,,,,,,,,,3.101,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,GeoJAC,1,FAILED,,,,,,,,,3.046,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,GeoJAC,2,FAILED,,,,,,,,,3.058,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,GeoJAC,3,FAILED,,,,,,,,,3.088,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,NeatNet,1,FAILED,,,,,,,,,3.006,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,NeatNet,2,FAILED,,,,,,,,,3.079,,"ParseError: no element found: line 1, column 0"
+"Lima Metropolitana, Peru",large,NeatNet,3,FAILED,,,,,,,,,3.17,,"ParseError: no element found: line 1, column 0"

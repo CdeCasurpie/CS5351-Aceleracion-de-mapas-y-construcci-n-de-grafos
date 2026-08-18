@@ -15,3 +15,7 @@ city,tier,algorithm,n_runs,n_ok,status_breakdown,median_nodes,median_edges,media
 "Cuauhtémoc, Ciudad de México, Mexico",extreme,OSMnx,3,0,TIMEOUT:3,,,,,,,,,,
 "Cuauhtémoc, Ciudad de México, Mexico",extreme,GeoJAC,3,0,TIMEOUT:3,,,,,,,,,,
 "Cuauhtémoc, Ciudad de México, Mexico",extreme,NeatNet,3,0,TIMEOUT:3,,,,,,,,,,
+"Lima Metropolitana, Peru",large,Raw OSM,3,0,FAILED:3,,,,,,,,,,
+"Lima Metropolitana, Peru",large,OSMnx,3,0,FAILED:3,,,,,,,,,,
+"Lima Metropolitana, Peru",large,GeoJAC,3,0,FAILED:3,,,,,,,,,,
+"Lima Metropolitana, Peru",large,NeatNet,3,0,FAILED:3,,,,,,,,,,
