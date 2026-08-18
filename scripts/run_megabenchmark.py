@@ -21,11 +21,18 @@ Usage:
     nix develop --command python3 scripts/run_megabenchmark.py --tiers 4
     nix develop --command python3 scripts/run_megabenchmark.py --summarize-only
 
-Resumability: on startup, any (city, algorithm, run_number) already present
-in the CSV (any status — OK, TIMEOUT, DOWNLOAD_TIMEOUT, FAILED, or
-SKIPPED_RAM all count as "already attempted") is skipped. To force a retry
-of a specific failed combination, delete its row(s) from
-outputs/benchmark_results.csv first.
+Resumability: on startup, any (city, algorithm, run_number) already logged
+with a *terminal* status (OK, TIMEOUT, or SKIPPED_RAM) is skipped. FAILED
+and DOWNLOAD_TIMEOUT rows are treated as retry-eligible, not done — they're
+usually download/environment issues (network, DNS, Nominatim) rather than a
+deterministic property of the (city, algorithm) pair, so a fresh run prunes
+those rows from the CSV and re-attempts them automatically. TIMEOUT and
+SKIPPED_RAM stay terminal on purpose: silently re-attempting those on every
+future launch risks burning hours re-running a combination that's
+genuinely, deterministically too slow/heavy (e.g. NeatNet's documented
+O(N^3) blowup on a huge city), not just unlucky. To force a retry of a
+TIMEOUT/SKIPPED_RAM/OK row too, delete it from outputs/benchmark_results.csv
+manually first.
 """
 import argparse
 import csv
@@ -33,6 +40,7 @@ import os
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 
 import psutil
 
@@ -50,6 +58,7 @@ OUTPUT_BASE = os.path.join(_ROOT, "outputs")
 GRAPH_CACHE_DIR = os.path.join(OUTPUT_BASE, "graph_cache")
 RESULTS_CSV = os.path.join(OUTPUT_BASE, "benchmark_results.csv")
 SUMMARY_CSV = os.path.join(OUTPUT_BASE, "benchmark_summary.csv")
+DOWNLOAD_ERROR_LOG = os.path.join(OUTPUT_BASE, "download_errors.log")
 
 ALGORITHMS = ["Raw OSM", "OSMnx", "GeoJAC", "NeatNet"]
 CSV_FIELDS = [
@@ -85,15 +94,39 @@ DOWNLOAD_TIMEOUT_S = 600
 # last-resort fallback that needs no Nominatim boundary resolution at all.
 _LIMA_METRO_BBOX = (-77.2, -12.4, -76.7, -11.7)
 
+# Cercado de Lima district's approximate bounding box (west, south, east,
+# north; EPSG:4326) — same last-resort role as _LIMA_METRO_BBOX above.
+# Approximate, generous margin around the district (centered near Plaza
+# Mayor de Lima, ~-12.0464,-77.0428) — not surveyed to the exact admin
+# boundary, same precision tier as _LIMA_METRO_BBOX.
+_CERCADO_LIMA_BBOX = (-77.08, -12.09, -76.98, -12.00)
+
 # tier -> [(city_name, tier_label, candidates), ...]
-# `candidates` is None for the common case (single place-query download).
-# When set, it's an ordered list of alternates to try if the primary
-# `city_name` fails to resolve/download; each item is either a place-query
-# string or ("bbox", west, south, east, north).
+# `candidates` is None for the common case (single place-query download,
+# network_type="drive"). When set, it's an ordered list of alternates to
+# try if the primary `city_name` fails to resolve/download; each item is
+# one of:
+#   - a place-query string                      (network_type="drive")
+#   - ("place", place_query_string, network_type)  (explicit network_type)
+#   - ("bbox", west, south, east, north)         (network_type="drive")
 TIERS: dict[int, list[tuple[str, str, list | None]]] = {
     1: [("Barranco, Lima, Peru", "control", None)],
     2: [
-        ("Cercado de Lima, Lima, Peru", "medium", None),
+        (
+            "Cercado de Lima, Lima, Peru", "medium",
+            [
+                # a) current/original query, network_type="drive"
+                "Cercado de Lima, Lima, Peru",
+                # b) same place, but "all" ways in case "drive" is too
+                #    restrictive for however this specific boundary resolved
+                ("place", "Cercado de Lima, Lima, Peru", "all"),
+                # c) more specific disambiguation string, still "drive"
+                "Cercado de Lima, Lima Province, Peru",
+                # d) last resort: explicit bbox, needs no Nominatim
+                #    boundary resolution at all, "drive"
+                ("bbox", *_CERCADO_LIMA_BBOX),
+            ],
+        ),
         ("Eixample, Barcelona, Spain", "medium", None),
     ],
     3: [(
@@ -111,15 +144,44 @@ TIERS: dict[int, list[tuple[str, str, list | None]]] = {
 
 # ── CSV helpers ────────────────────────────────────────────────────────────
 
+# Statuses that represent a real, finished attempt and stay skipped on
+# resume. Anything else currently logged (FAILED, DOWNLOAD_TIMEOUT) is
+# retry-eligible — see the module docstring's Resumability section for why
+# the split lands here specifically.
+_TERMINAL_STATUSES = {"OK", "TIMEOUT", "SKIPPED_RAM"}
+
+
 def _load_completed() -> set[tuple[str, str, int]]:
-    """(city, algorithm, run_number) triples already logged — any status."""
+    """(city, algorithm, run_number) triples with a terminal status.
+
+    As a side effect, rewrites RESULTS_CSV to drop any row whose status is
+    NOT terminal (FAILED / DOWNLOAD_TIMEOUT) — those are retry-eligible, and
+    pruning them here (rather than just excluding them from the returned
+    set) keeps the append-only CSV model correct: without pruning, a retried
+    (city, algorithm, run_number) would get a *second* row appended for the
+    same key alongside the old failed one, corrupting n_runs/n_ok in
+    write_summary(). Pruned rows aren't unrecoverably lost — they're still
+    in git history from the last checkpoint commit.
+    """
     if not os.path.exists(RESULTS_CSV):
         return set()
-    done = set()
     with open(RESULTS_CSV, newline="") as f:
-        for row in csv.DictReader(f):
-            done.add((row["city"], row["algorithm"], int(row["run_number"])))
-    return done
+        rows = list(csv.DictReader(f))
+
+    keep = [r for r in rows if r["status"] in _TERMINAL_STATUSES]
+    pruned = len(rows) - len(keep)
+    if pruned:
+        with open(RESULTS_CSV, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+            writer.writeheader()
+            for r in keep:
+                writer.writerow({k: r.get(k, "") for k in CSV_FIELDS})
+            f.flush()
+            os.fsync(f.fileno())
+        print(f"  resumability: pruned {pruned} retry-eligible row(s) "
+              f"(FAILED/DOWNLOAD_TIMEOUT) from {RESULTS_CSV}")
+
+    return {(r["city"], r["algorithm"], int(r["run_number"])) for r in keep}
 
 
 def _append_row(row: dict) -> None:
@@ -148,19 +210,52 @@ def _ram_guard_ok(min_gb: float) -> tuple[bool, float]:
 
 # ── graph download / cache ────────────────────────────────────────────────
 
+def _log_download_error(label: str, cmd: list[str], detail: str) -> None:
+    """Append full diagnostic detail (traceback, full stderr/stdout — not
+    just the one-line tail that goes in the CSV note) to DOWNLOAD_ERROR_LOG,
+    so a failed candidate never requires manually re-running the download to
+    see what actually went wrong."""
+    os.makedirs(OUTPUT_BASE, exist_ok=True)
+    ts = datetime.now(timezone.utc).isoformat()
+    with open(DOWNLOAD_ERROR_LOG, "a") as f:
+        f.write(
+            f"\n{'=' * 70}\n[{ts}] candidate={label!r}\n"
+            f"cmd={' '.join(cmd)}\n{detail}\n"
+        )
+        f.flush()
+        os.fsync(f.fileno())
+
+
 def _try_one_download(
-    cmd: list[str], cache_path: str, timeout_s: int,
+    cmd: list[str], cache_path: str, timeout_s: int, label: str,
 ) -> tuple[bool, str, bool]:
     """Returns (ok, message, timed_out) — timed_out is True only when this
     specific attempt hit the subprocess-level wall clock, as opposed to
     failing for any other reason (bad place name, network error, ...)."""
     try:
         proc = subprocess.run(cmd, timeout=timeout_s, capture_output=True, text=True)
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        # subprocess.run's TimeoutExpired carries whatever stdout/stderr the
+        # child had already produced before being SIGKILLed — may be empty
+        # if it never got that far (e.g. still resolving DNS), but capture
+        # it when present.
+        _log_download_error(
+            label, cmd,
+            f"TIMEOUT after {timeout_s}s\n"
+            f"--- partial stderr ---\n{(exc.stderr or '(none captured)').strip()}\n"
+            f"--- partial stdout ---\n{(exc.stdout or '(none captured)').strip()}",
+        )
         return False, f"TIMEOUT after {timeout_s}s", True
 
     if proc.returncode != 0 or not os.path.exists(cache_path):
-        stderr_tail = (proc.stderr or "").strip().splitlines()[-1:] or ["(no stderr)"]
+        full_stderr = (proc.stderr or "").strip()
+        stderr_tail = full_stderr.splitlines()[-1:] or ["(no stderr)"]
+        _log_download_error(
+            label, cmd,
+            f"rc={proc.returncode}\n"
+            f"--- full stderr (includes traceback) ---\n{full_stderr or '(empty)'}\n"
+            f"--- full stdout ---\n{(proc.stdout or '').strip() or '(empty)'}",
+        )
         return False, f"FAILED (rc={proc.returncode}): {stderr_tail[0]}", False
 
     ok_msg = proc.stdout.strip().splitlines()[-1] if proc.stdout else "downloaded"
@@ -177,7 +272,14 @@ def _ensure_graph_cached(
     each in its own subprocess with its own timeout, so a hung
     Nominatim/Overpass call can never stall the whole benchmark. The first
     candidate to succeed wins; if all fail, every attempt's failure reason
-    is reported so it's clear why the city was skipped.
+    is reported so it's clear why the city was skipped, and the full detail
+    (traceback / full stderr) for each failed attempt is appended to
+    DOWNLOAD_ERROR_LOG.
+
+    Each candidate is a place-query string (network_type="drive"),
+    ("place", place_query_string, network_type) for an explicit
+    network_type, or ("bbox", west, south, east, north) (network_type
+    "drive").
 
     Returns (ok, message, any_timed_out) — any_timed_out is True if at least
     one candidate specifically hit the download timeout (as opposed to
@@ -205,6 +307,14 @@ def _ensure_graph_cached(
                 "--graph-cache", cache_path,
             ]
             label = f"bbox({west},{south},{east},{north})"
+        elif isinstance(candidate, tuple) and candidate[0] == "place":
+            _, place, network_type = candidate
+            cmd = [
+                sys.executable, WORKER, "--mode", "download",
+                "--city", place, "--network-type", network_type,
+                "--graph-cache", cache_path,
+            ]
+            label = f"{place} (network_type={network_type})"
         else:
             cmd = [
                 sys.executable, WORKER, "--mode", "download",
@@ -213,7 +323,7 @@ def _ensure_graph_cached(
             label = candidate
 
         print(f"  trying download candidate: {label} …")
-        ok, msg, timed_out = _try_one_download(cmd, cache_path, timeout_s)
+        ok, msg, timed_out = _try_one_download(cmd, cache_path, timeout_s, label)
         if ok:
             note = f"resolved via {label!r}: {msg}"
             if len(attempts) > 1:

@@ -55,7 +55,10 @@ def _peak_memory_mb() -> float:
     return round(kb / 1024, 2)
 
 
-def _do_download(city_name: str, graph_cache: str, bbox: list[float] | None) -> None:
+def _do_download(
+    city_name: str, graph_cache: str, bbox: list[float] | None,
+    network_type: str = "drive",
+) -> None:
     import osmnx as ox
 
     # HTTP-level (socket) timeout for the Overpass/Nominatim requests this
@@ -82,11 +85,11 @@ def _do_download(city_name: str, graph_cache: str, bbox: list[float] | None) -> 
     if bbox:
         west, south, east, north = bbox
         G_osm = ox.graph_from_bbox(
-            (west, south, east, north), network_type="drive", simplify=False
+            (west, south, east, north), network_type=network_type, simplify=False
         )
         label = f"bbox({west},{south},{east},{north})"
     else:
-        G_osm = ox.graph_from_place(city_name, network_type="drive", simplify=False)
+        G_osm = ox.graph_from_place(city_name, network_type=network_type, simplify=False)
         label = city_name
 
     G_proj = ox.project_graph(G_osm)
@@ -155,6 +158,10 @@ def main() -> int:
     ap.add_argument(
         "--bbox", help="west,south,east,north — bbox fallback for download mode"
     )
+    ap.add_argument(
+        "--network-type", default="drive",
+        help="osmnx network_type for download mode (default: drive)",
+    )
     ap.add_argument("--graph-cache", required=True, help="Path to .graphml cache")
     ap.add_argument("--algorithm", help="Raw OSM | OSMnx | GeoJAC | NeatNet")
     ap.add_argument("--result-path", help="Where to write JSON metrics (run mode)")
@@ -169,7 +176,7 @@ def main() -> int:
                     raise ValueError("--bbox must be west,south,east,north")
             elif not args.city:
                 raise ValueError("--city or --bbox is required for --mode download")
-            _do_download(args.city, args.graph_cache, bbox)
+            _do_download(args.city, args.graph_cache, bbox, args.network_type)
         else:
             if not args.algorithm or not args.result_path:
                 raise ValueError(
