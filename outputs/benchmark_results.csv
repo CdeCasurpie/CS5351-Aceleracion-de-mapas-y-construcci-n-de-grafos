@@ -35,15 +35,15 @@ city,tier,algorithm,run_number,status,nodes,edges,total_length_km,avg_sinuosity,
 "Cercado de Lima, Lima, Peru",medium,NeatNet,1,OK,2011.0,4702.0,458.6047,1.018554,2.5332,94.46,196.2342,1347.9525,124.79,1611.45,
 "Cercado de Lima, Lima, Peru",medium,NeatNet,2,OK,2011.0,4702.0,458.6047,1.018554,2.5332,94.46,196.2342,1347.9525,117.225,1611.73,
 "Cercado de Lima, Lima, Peru",medium,NeatNet,3,OK,2011.0,4702.0,458.6047,1.018554,2.5332,94.46,196.2342,1347.9525,118.059,1611.76,
-"Lima Metropolitana, Peru",large,Raw OSM,1,FAILED,,,,,,,,,3.209,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,Raw OSM,2,FAILED,,,,,,,,,2.966,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,Raw OSM,3,FAILED,,,,,,,,,2.882,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,OSMnx,1,FAILED,,,,,,,,,2.833,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,OSMnx,2,FAILED,,,,,,,,,2.999,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,OSMnx,3,FAILED,,,,,,,,,3.01,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,GeoJAC,1,FAILED,,,,,,,,,3.052,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,GeoJAC,2,FAILED,,,,,,,,,2.806,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,GeoJAC,3,FAILED,,,,,,,,,4.393,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,NeatNet,1,FAILED,,,,,,,,,2.799,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,NeatNet,2,FAILED,,,,,,,,,2.945,,"ParseError: no element found: line 1, column 0"
-"Lima Metropolitana, Peru",large,NeatNet,3,FAILED,,,,,,,,,2.957,,"ParseError: no element found: line 1, column 0"
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,Raw OSM,1,OK,243145.0,441010.0,18493.1951,1.001893,0.0,100.0,0.0,0.0,108.362,3453.38,
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,Raw OSM,2,OK,243145.0,441010.0,18493.1951,1.001893,0.0,100.0,0.0,0.0,107.477,3453.66,
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,Raw OSM,3,OK,243145.0,441010.0,18493.1951,1.001893,0.0,100.0,0.0,0.0,110.931,3454.07,
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,OSMnx,1,TIMEOUT,,,,,,,,,1800.151,,exceeded 1800s hard timeout
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,OSMnx,2,TIMEOUT,,,,,,,,,1800.161,,exceeded 1800s hard timeout
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,OSMnx,3,TIMEOUT,,,,,,,,,1800.171,,exceeded 1800s hard timeout
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,GeoJAC,1,TIMEOUT,,,,,,,,,1800.17,,exceeded 1800s hard timeout
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,GeoJAC,2,TIMEOUT,,,,,,,,,1800.22,,exceeded 1800s hard timeout
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,GeoJAC,3,TIMEOUT,,,,,,,,,1800.217,,exceeded 1800s hard timeout
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,NeatNet,1,TIMEOUT,,,,,,,,,1800.456,,exceeded 1800s hard timeout
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,NeatNet,2,TIMEOUT,,,,,,,,,1801.967,,exceeded 1800s hard timeout
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,NeatNet,3,TIMEOUT,,,,,,,,,1800.474,,exceeded 1800s hard timeout

@@ -11,7 +11,7 @@ city,tier,algorithm,n_runs,n_ok,status_breakdown,median_nodes,median_edges,media
 "Cercado de Lima, Lima, Peru",medium,OSMnx,3,3,OK:3,2636.0,5479.0,480.0321,1.0307,0.0,99.94,4.525,29.4909,112.597,1617.14
 "Cercado de Lima, Lima, Peru",medium,GeoJAC,3,3,OK:3,5093.0,10192.0,470.3082,1.0,1.0132,99.87,12.5266,51.0557,169.777,2473.98
 "Cercado de Lima, Lima, Peru",medium,NeatNet,3,3,OK:3,2011.0,4702.0,458.6047,1.0186,2.5332,94.46,196.2342,1347.9525,118.059,1611.73
-"Lima Metropolitana, Peru",large,Raw OSM,3,0,FAILED:3,,,,,,,,,,
-"Lima Metropolitana, Peru",large,OSMnx,3,0,FAILED:3,,,,,,,,,,
-"Lima Metropolitana, Peru",large,GeoJAC,3,0,FAILED:3,,,,,,,,,,
-"Lima Metropolitana, Peru",large,NeatNet,3,0,FAILED:3,,,,,,,,,,
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,Raw OSM,3,3,OK:3,243145.0,441010.0,18493.1951,1.0019,0.0,100.0,0.0,0.0,108.362,3453.66
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,OSMnx,3,0,TIMEOUT:3,,,,,,,,,,
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,GeoJAC,3,0,TIMEOUT:3,,,,,,,,,,
+"Cuauhtémoc, Ciudad de México, Mexico",extreme,NeatNet,3,0,TIMEOUT:3,,,,,,,,,,
