@@ -1,0 +1,9 @@
+city,escenario,model,nodes,edges,coords,total_length_km,avg_degree,avg_sinuosity,connectivity,keypoint_displacement_m,reachability_preservation_%,path_error_abs_median,path_error_abs_p95,path_ratio_median,path_ratio_p95
+"Bucaramanga, Colombia",sin_blindaje,Raw OSM,32172.0,55723.0,111446.0,1274.8079,3.4641,1.002058,1.0,0.0,100.0,0.0,0.0,1.0,1.0
+"Bucaramanga, Colombia",sin_blindaje,OSMnx,5052.0,11140.0,66863.0,1266.1456,4.3816,1.082817,1.0,0.0,99.96,15.7726,200.4836,1.0008,1.0308
+"Bucaramanga, Colombia",sin_blindaje,GeoJAC,22561.0,45620.0,91240.0,1232.0266,4.0229,1.0,1.0,0.9848,99.35,123.8018,812.6408,0.9901,1.0346
+"Bucaramanga, Colombia",sin_blindaje,NeatNet,4161.0,9989.0,58908.0,1219.0866,4.7743,1.061565,4.0,2.2328,93.73,135.1022,1485.0974,0.9972,1.1553
+"Bucaramanga, Colombia",con_blindaje,Raw OSM,32172.0,55723.0,111446.0,1274.8079,3.4641,1.002058,1.0,0.0,100.0,0.0,0.0,1.0,1.0
+"Bucaramanga, Colombia",con_blindaje,OSMnx,5052.0,11140.0,66863.0,1264.0877,4.3816,1.082817,1.0,0.0,99.96,18.4333,179.8356,0.9992,1.0287
+"Bucaramanga, Colombia",con_blindaje,GeoJAC,22561.0,45620.0,91240.0,1232.0266,4.0229,1.0,1.0,0.9848,99.35,123.8018,812.6408,0.9901,1.0346
+"Bucaramanga, Colombia",con_blindaje,NeatNet,4161.0,9989.0,58908.0,1219.0866,4.7743,1.061565,4.0,2.2328,93.73,18.4333,179.8356,0.9992,1.0287

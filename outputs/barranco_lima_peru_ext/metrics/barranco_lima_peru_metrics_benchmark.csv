@@ -1,0 +1,9 @@
+city,escenario,model,nodes,edges,coords,total_length_km,avg_degree,avg_sinuosity,connectivity,keypoint_displacement_m,reachability_preservation_%,path_error_abs_median,path_error_abs_p95,path_ratio_median,path_ratio_p95
+"Barranco, Lima, Peru",sin_blindaje,Raw OSM,2053.0,2537.0,5074.0,67.3426,2.4715,1.002252,1.0,0.0,100.0,0.0,0.0,1.0,1.0
+"Barranco, Lima, Peru",sin_blindaje,OSMnx,424.0,751.0,3288.0,67.1539,3.5283,1.039389,1.0,0.0,99.09,0.0,20.1233,1.0,1.0132
+"Barranco, Lima, Peru",sin_blindaje,GeoJAC,582.0,1065.0,2130.0,64.8593,3.5395,1.0,1.0,1.2792,99.6,7.8912,66.8686,0.9941,0.9984
+"Barranco, Lima, Peru",sin_blindaje,NeatNet,333.0,638.0,2641.0,60.369,3.8318,1.016827,1.0,3.0298,97.13,42.5465,675.5061,0.9973,1.5906
+"Barranco, Lima, Peru",con_blindaje,Raw OSM,2053.0,2537.0,5074.0,67.3426,2.4715,1.002252,1.0,0.0,100.0,0.0,0.0,1.0,1.0
+"Barranco, Lima, Peru",con_blindaje,OSMnx,424.0,751.0,3288.0,67.0204,3.5283,1.039389,1.0,0.0,99.09,3.5792,20.5626,0.9979,1.0111
+"Barranco, Lima, Peru",con_blindaje,GeoJAC,582.0,1065.0,2130.0,64.8593,3.5395,1.0,1.0,1.2792,99.6,7.8912,66.8686,0.9941,0.9984
+"Barranco, Lima, Peru",con_blindaje,NeatNet,333.0,638.0,2641.0,60.369,3.8318,1.016827,1.0,3.0298,97.13,3.5792,20.5626,0.9979,1.0111
